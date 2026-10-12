@@ -88,6 +88,8 @@ connectors:
   setupCancel: Annulla
   authorizedToolsUnavailable: Autorizzato. Strumenti non disponibili.
   required: Obbligatorio
+  connectErrorFor: Impossibile avviare l'autorizzazione per {0}.
+  setup: Configura {0}
 connectorsPage:
   title: Connettori
   filterCategory: Categoria
@@ -141,6 +143,15 @@ connectorsPage:
       reconnect: Ricollega per mantenere questa app funzionante.
       serverError: Il server ha rifiutato la connessione.
       serverNeedsAuth: Accedi per far rispondere questo server.
+    fact:
+      tools: '{0} tool'
+      toolsOff: '{0} tool disattivati'
+      toolsOn: '{0} tool attivati'
+      toolsSomeOn: '{0} tool, {1} attivati'
+    kindPlugin: MCP · Plugin {0}
+    open: Apri {0}
+    turnServerOff: Disattiva {0}
+    turnServerOn: Attiva {0}
   page:
     loading: Lettura del catalogo e dei server su questo computer
     emptyTitle: Nessuna app qui ancora. Aggiungi un server su questo computer per iniziare.
@@ -159,6 +170,8 @@ connectorsPage:
     refreshFailed: L'elenco degli strumenti non è stato aggiornato.
     disconnectNoAccount: Hermes non ha un account da scollegare qui. Aggiorna la pagina e riprova.
     disconnectRefused: Nous non può rimuovere questo accesso in questo momento. Disattiva l'app con l'interruttore, oppure riprova più tardi.
+    matchesElsewhere: '{0} corrispondenze aggiuntive in altri gruppi.'
+    segmentNoMatch: Nessuna corrispondenza in {0}, quindi vengono mostrate tutte le corrispondenze.
   add:
     action: Aggiungi il tuo
     title: Connetti a un MCP personalizzato
@@ -210,6 +223,15 @@ connectorsPage:
     usesPerMonth: usi in 30 giorni
     advanced: Avanzate
     advancedHint: la voce mcp.json e i log
+    appSwitch: Hermes può usare {0}
+    bothOn: Entrambi sono attivi, quindi Hermes vede ogni tool di {0} due volte.
+    disconnectTitle: Disconnettere {0}?
+    orgNote: La tua organizzazione ha disattivato {0} tool.
+    providedByPlugin: Fornito dal plugin {0}
+    removeServerTitle: Rimuovere {0}?
+    rulesAppOff: Attiva {0} per modificarne i tool.
+    wayNotConnected: Non ancora connesso. Accedi a {0} nel tuo browser.
+    waysTitle: Dove gira {0}
   tools:
     title: Strumenti
     notInstalledBody: Installalo su questo dispositivo per vedere gli strumenti che porta.
@@ -241,6 +263,27 @@ connectorsPage:
     discard: Scarta
     save: Salva modifiche
     saving: Salvataggio...
+    categorySelect: '{0} categorie'
+    conflictBody: Hanno disattivato {0} tool che hai attivato e lasciato attivi {1} tool che hai disattivato. Le tue modifiche restano a schermo; nulla è stato scritto.
+    facetSwitch: Attiva o disattiva i tool di {0}
+    footerDirty: '{0} tool disattivati, {1} riattivati'
+    goneTitle: '{0} ha lasciato il catalogo.'
+    hideDeprecated: Nascondi {0} deprecati
+    hideDetails: Nascondi cosa fa {0}
+    moreHints: +{0}
+    needsAuthTitle: Accedi a {0} per leggere i suoi tool.
+    offTitle: '{0} è disattivato.'
+    searchCountPlaceholder: Cerca tra {0} tool
+    showAllTools: Mostra tutti i {0} tool
+    showDeprecated: Mostra {0} deprecati
+    showDetails: Mostra cosa fa {0}
+    summaryCount: '{0} tool'
+    summaryPreviewTitle: Cosa potrebbe fare Hermes con {0} una volta connesso
+    summarySomeOn: '{0} di {1} attivi'
+    summaryTitle: Cosa potrebbe fare Hermes con {0}
+    toolList: Tool di {0}
+    turnToolOff: Disattiva {0}
+    turnToolOn: Attiva {0}
   vocabulary:
     facetRead:
       label: Lettura
@@ -275,6 +318,7 @@ connectorsPage:
     hintOpenWorld:
       label: Esterno
       long: Raggiunge qualcosa al di fuori di questa app.
+  searchPlaceholder: Cerca tra {0} app
 sessionImport:
   title: Continua da un'altra app
   subtitle: Porta una conversazione in Hermes e riprendi da dove avevi lasciato.
@@ -347,6 +391,7 @@ common:
   update: Aggiorna
   'on': Acceso
   'off': Spento
+  tryHint: Prova “{0}”
 fileMenu:
   revealFinder: Mostra in Finder
   revealExplorer: Mostra in Esplora File
@@ -365,6 +410,7 @@ fileMenu:
   pathCopied: Percorso copiato
   revealMissing: Quella cartella non è su questo computer
   revealUnavailable: "Quel percorso non è su questo computer: si trova sulla macchina del backend. Usa \"Mostra nell'albero file\"."
+  deleteTitle: Eliminare {0}?
 boot:
   ready: Hermes Desktop è pronto
   steps:
@@ -427,6 +473,8 @@ boot:
     signInFailed: Accesso non riuscito
     signInToRemoteGateway: Accedi al gateway remoto
     identityProvider: il tuo provider di identità
+    remoteSignInHint: Disconnette dalla sessione browser remota salvata, poi apre {0}. Usa il gateway locale per passare al backend incluso.
+    signInWithProvider: Accedi con {0}
   updateHold:
     title: Un aggiornamento precedente blocca ancora Hermes
     titleUnverified: Hermes non può confermare che l'ultimo aggiornamento sia terminato
@@ -443,6 +491,10 @@ boot:
     confirmKeepWaiting: Continua ad aspettare
     confirmStart: Avvia comunque
     startAnywayRefused: Quello che blocca l'installazione è cambiato prima che Hermes potesse avviarsi. Esaminalo e riprova.
+    heldByProcess: L'aggiornamento (processo {0}) è terminato, ma un processo da esso avviato sta ancora bloccando l'installazione di Hermes.
+    lastChecked: Ultimo controllo {0}
+    since: In attesa dal {0}
+  desktopBootFailedWithMessage: 'Avvio desktop non riuscito: {0}'
 notifications:
   sharedProfileWarning: Un'altra installazione di Hermes sta usando questo profilo. Entrambe le installazioni condividono le sue impostazioni e i suoi dati, quindi le modifiche possono entrare in conflitto. Puoi continuare, oppure chiudere l'altra installazione prima di apportare modifiche.
   region: Notifiche
@@ -471,6 +523,10 @@ notifications:
     signIn: Accedi
     view: Visualizza
     disable: Disabilita
+    disableFailed: Impossibile disabilitare MCP {0}.
+    disabledMessage: MCP {0} disabilitato. Puoi riattivarlo in qualsiasi momento da Capacità → MCP.
+    errorMessage: Il controllo di integrità di MCP {0} non è riuscito.
+    needsAuthMessage: MCP {0} richiede la riautenticazione.
   errors:
     elevenLabsNeedsKey: L'input vocale richiede una chiave ElevenLabs. Aggiungine una in Impostazioni → Chiavi.
     elevenLabsRejectedKey: ElevenLabs non ha accettato la tua chiave API. Aggiornala in Impostazioni → Chiavi, quindi riprova.
@@ -512,6 +568,8 @@ notifications:
     liveEndedClosed: La sessione vocale dal vivo è stata chiusa dal servizio.
     liveError: Voce dal vivo
     liveDelegationFailed: Impossibile passare la richiesta a Hermes
+    liveUnavailable: 'La chat vocale GPT-Live non è disponibile: {0}. Uso la trascrizione vocale al posto di essa.'
+    sayStopToEnd: Di "{0}" per terminare la chat vocale.
   native:
     approvalTitle: Approvazione necessaria
     approveAction: Approva
@@ -524,6 +582,10 @@ notifications:
     backgroundDoneTitle: Attività in background completata
     backgroundFailedTitle: Attività in background non riuscita
     creditsTitle: Crediti
+    approvalTitleNamed: Approvazione necessaria — {0}
+    inputTitleNamed: Input necessario — {0}
+  more: Altre {0} notifiche
+  updateReadyMessage: '{0} nuove modifiche disponibili.'
 butterbar:
   legal:
     before: "L'uso di Hermes Agent è soggetto ai nostri "
@@ -531,12 +593,14 @@ butterbar:
     between: ' e alla '
     privacy: Informativa sulla privacy
     after: .
+  goTo: Mostra notifica {0} di {1}
 billingBlock:
   titleNous: Crediti Nous esauriti
   fallbackMessage: Il tuo account è a corto di crediti. Aggiungi crediti per continuare.
   openBilling: Apri fatturazione
   addCredits: Aggiungi crediti
   dismiss: Ignora
+  titleProvider: Crediti esauriti — {0}
 sendDiagnostics:
   title: Invia diagnostiche a Nous
   privacyNotice: Questo carica un bundle di debug nello storage interno di Nous (non un paste pubblico). Include informazioni di sistema (SO, versioni, provider, quali chiavi API sono configurate — mai le chiavi stesse) e log completi di agente, gateway e desktop (fino a 512 KB ciascuno), che probabilmente contengono contenuto delle conversazioni, output degli strumenti e percorsi dei file. I segreti vengono oscurati prima del caricamento. Il bundle è visualizzabile solo dal personale di Nous e dai moderatori Discord in lista bianca e viene eliminato automaticamente dopo 14 giorni.
@@ -554,6 +618,7 @@ sendDiagnostics:
     github: GitHub Issues
     portal: Supporto Nous Portal
     discord: Discord
+  uploadIdFallback: Nessun link di visualizzazione restituito — cita l'ID di upload {0} al supporto
 titlebar:
   hideSidebar: Nascondi barra laterale
   showSidebar: Mostra barra laterale
@@ -570,6 +635,8 @@ titlebar:
   exitHud: Esci dalla modalità HUD
   resetHudLayout: Reimposta dimensione e posizione HUD
   layoutEditor: Editor layout
+  layoutEditorTitle: Editor layout — clic {0} per reimpostare il layout
+  unreadSessions: '{0} sessioni non lette'
 keybinds:
   title: Scorciatoie da tastiera
   search: Cerca scorciatoie…
@@ -705,6 +772,8 @@ keybinds:
       prev: Profilo precedente
       toggleAll: Attiva/disattiva vista tutti i profili
       create: Crea profilo
+  conflictWith: Anche associato a “{0}”
+  subtitle: Fai clic su una scorciatoia per riassegnarla · {0} riapre questo pannello.
 findInPage:
   next: Corrispondenza successiva
   previous: Corrispondenza precedente
@@ -780,6 +849,7 @@ settings:
     manage: Gestisci plugin
     agentSettings: Impostazioni agente
     missing: Quel plugin non ha una pagina di impostazioni. Potrebbe essere disabilitato o disinstallato.
+    pageCount: '{0} pagine'
   nav:
     providers: Provider
     providerAccounts: Account
@@ -849,6 +919,16 @@ settings:
       agentFailed: Installazione plugin agent non riuscita
       installUncertain: Hermes ha smesso di attendere il risultato dell'installazione, ma il plugin potrebbe ancora essere in fase di installazione. Chiudi questa finestra di dialogo e usa Riscansiona in Plugins prima di provare di nuovo a Installare.
       desktopFailed: Installazione plugin desktop non riuscita
+      agentSuccess: Plugin agent {0} installato
+      agentTargetLocal: Installa nel backend {0} ({1})
+      agentTargetRemote: Installa nel backend {0} connesso
+      alreadyInstalled: '{0} è già installato.'
+      catalogPinned: Voce catalogo Hermes "{0}" — il componente agent viene installato alla pin revisionata {1}, non alla punta del branch.
+      desktopSuccess: Plugin desktop {0} installato
+      missingEnv: '{0} è installato ma ha bisogno di una chiave per funzionare: {1}. Aggiungila ora, altrimenti i tool del plugin falliranno.'
+      serverNotConnected: 'Il server MCP {0} non è connesso: {1}'
+      skillsReady: '{0} skill pronte'
+      toolsConnected: '{0} tool connessi'
   vault:
     title: Password e accessi
     blurb: Di' "accedi a GitHub" e l'agent accede per te. La prima volta che incontra una pagina di accesso ti chiederà le credenziali lì stesso; dopo funzionerà da solo. Le password sono crittografate su questo computer e inserite direttamente nella pagina — il modello non le vede mai.
@@ -916,6 +996,13 @@ settings:
       lock: Blocca
       unlockDescription: Inserisci la tua password master. Viene passata al gestore di password su questo computer e scartata — non viene mai salvata, registrata o mostrata all'agent.
       masterPasswordPlaceholder: Password master
+      notInstalled: Non rilevato. Installa lo strumento da riga di comando {0} ed effettua l'accesso; Hermes lo rileverà automaticamente.
+      unlockTitle: Sblocca {0}
+      unlocked: '{0} sbloccato per questa sessione.'
+    count: '{0} salvati'
+    createdOn: Aggiunto {0}
+    deleteDescription: '"{0}" verrà rimosso. Questa operazione non può essere annullata.'
+    identifierShown: '{0}'
   notifications:
     title: Notifiche
     intro: Notifiche OS (non toast in-app). Per dispositivo.
@@ -1106,6 +1193,23 @@ settings:
       noneAvailable: Nessuna mascotte disponibile da attivare in questo momento.
       turnOnFailed: Impossibile attivare la mascotte.
       turnOffFailed: Impossibile disattivare la mascotte.
+      adoptFailed: Impossibile adottare {0}
+      count: '{0} pet.'
+      countCapped: Mostrando {0} di {1} — digita per restringere la ricerca.
+      delete: Elimina {0}
+      deleteTitle: Eliminare {0}?
+      exportFailed: Impossibile esportare {0}
+      exportPet: Esporta {0}
+      noMatch: Nessun pet corrisponde a "{0}".
+      rename: Rinomina {0}
+      renameFailed: Impossibile rinominare {0}
+      uninstall: Disinstalla {0}
+      uninstallFailed: Impossibile disinstallare {0}
+    embedsReset: Reimposta {0} servizi consentiti
+    installed: Installato “{0}”.
+    themeProfileNote: Salvato per il profilo {0} — ogni profilo mantiene il proprio tema.
+    tipsReset: Mostra di nuovo {0} suggerimenti
+    uiScaleDesc: "Scala testo e controlli in tutta l'app. Funziona anche Cmd/Ctrl con +, - e 0. Attuale: {0}%."
   fieldLabels:
     model: Modello predefinito
     modelContextLength: Finestra di contesto modello principale (override)
@@ -1348,6 +1452,8 @@ settings:
         title: Disinstalla tutto
         description: Rimuovi l'app, l'agente e tutti i dati utente — configurazione, chat, lavori pianificati, segreti, log.
         consequence: TUTTO — la GUI Chat, l'agente Hermes e tutta la tua configurazione, chat, segreti e log
+    confirmBody: Questo rimuove {0}. Non può essere annullato.
+    dataKept: Configurazione, chat e segreti si trovano in {0}. La rimozione dell'app non li elimina.
   poolLimits:
     warmBotBackendsAria: Backend bot caldi
     warmBotBackendsTitle: Backend Bot Caldi
@@ -1389,6 +1495,9 @@ settings:
     emptyTitle: Nessun endpoint personalizzato
     namePlaceholder: Axet Proxy
     contextPlaceholder: Auto
+    deleteConfirm: Eliminare {0}?
+    endpointReachableModels: '{0} Trovati {1} modelli.'
+    endpointReachableTransport: L'endpoint è raggiungibile (rotta {0} servita).
   computerUse:
     accessibility: Accessibilità
     screenRecording: Registrazione schermo
@@ -1478,6 +1587,7 @@ settings:
     remove: Rimuovi
     getKey: Ottieni una chiave
     saving: Salvataggio
+    pasteLabelKey: Incolla chiave {0}
   envActions:
     actions: Azioni
     manageInKeys: Gestisci in Chiavi API
@@ -1540,6 +1650,10 @@ settings:
     saving: Salvataggio…
     cancel: Annulla
     empty: Nessuna connessione registrata.
+    duplicateSsh: Esiste già una connessione a questo host SSH (“{0}”).
+    duplicateUrl: Esiste già una connessione a questo URL gateway (“{0}”).
+    removeConfirmDesc: “{0}” verrà rimosso da questa app. L'istanza stessa non viene toccata — puoi aggiungerla di nuovo in qualsiasi momento.
+    sameBackendHint: Stesso backend di “{0}”
   managedUpdates:
     title: Aggiornamenti gestiti
     intro: 'Aggiorna transazionalmente le installazioni SSH gestite da Desktop: le sessioni vengono scaricate, il checkout remoto viene aggiornato e ogni profilo viene ripristinato con una ricevuta correlata.'
@@ -1552,6 +1666,10 @@ settings:
     refused: Rifiutato
     failed: Aggiornamento fallito
     alreadyRunning: Aggiornamento già in corso
+    receipt: Ricevuta {0} · {1}
+    receiptVersions: '{0} → {1}'
+    scopeNotRestored: 'Profilo “{0}” non ripristinato: {1}'
+    scopesRestored: 'Profili ripristinati: {0}'
   gateway:
     loading: Caricamento impostazioni gateway...
     unavailableTitle: Impostazioni gateway non disponibili
@@ -1678,6 +1796,14 @@ settings:
     sshErrUpdateRequired: Aggiorna Hermes sull'host remoto prima di connettere con Desktop SSH.
     sshErrInteractiveAuth: Tailscale SSH richiede una verifica interattiva nel browser. Nel Terminale, esegui `ssh <host> true`, completa la verifica, quindi riprova — Hermes esegue SSH in modo non interattivo.
     sshErrUnknown: Connessione SSH fallita.
+    authNeedsOauth: Questo gateway usa OAuth. Accedi con {0} per autorizzare questa app desktop.
+    cloudConnectedTo: Connesso a {0}.
+    cloudOrgRole: 'Ruolo: {0}'
+    cloudStatusLabel: 'Stato: {0}'
+    connectedTo: Connesso a {0} · Hermes {1}
+    existingToken: Token esistente {0}
+    signInWith: Accedi con {0}
+    sshReachable: 'Raggiungibile: {0} ({1}) — Hermes trovato'
   keys:
     loading: Caricamento chiavi API e credenziali...
     failedLoad: Caricamento chiavi API fallito
@@ -1687,6 +1813,7 @@ settings:
     pill: Cerca
   profileScope:
     appliesTo: Si applica a
+    editsProfile: Le modifiche in questa pagina si applicano al profilo “{0}”.
   mcp:
     loading: Caricamento server MCP...
     invalidJson: JSON MCP non valido
@@ -1720,6 +1847,13 @@ settings:
     deepLinkErrorShape: La configurazione deve essere un oggetto JSON con un campo stringa `url` o `command`.
     deepLinkErrorUrl: Sono consentiti solo URL di server http:// e https://.
     deepLinkErrorTooLarge: Il payload della configurazione supera il limite di 32KB.
+    authenticatedMessage: '{0}: {1} tool'
+    capabilitySummary: '{0} tool, {1} prompt, {2} risorse abilitati'
+    catalogInstallFailed: Installazione di {0} non riuscita
+    costTokens: ~{0} tok/chiamata
+    deepLinkNameConflict: Esiste già un server denominato {0} — scegli un nome diverso o annulla.
+    savedMessage: '{0} si applica dopo il reload MCP.'
+    usage30d: '{0} usi/30gg'
   model:
     setupProviderFallback: provider
     staleAuxAfter: ', non il tuo modello principale.'
@@ -1805,6 +1939,13 @@ settings:
       curator:
         label: Curatore
         hint: Revisione utilizzo abilità
+    followTask: Segui {0}
+    inheritsFrom: eredita da {0}
+    mainAppliedMessage: Le nuove sessioni useranno {0}.
+    moaReferenceTitle: Riferimento {0}
+    moaReferenceToggle: Disabilita riferimento {0}
+    setUpProvider: Configura {0}
+    staleAuxBefore: '{0} task ausiliari ({1}) girano ancora su '
   localModels:
     connectionChanged: Connessione modelli locali modificata
     title: Modelli locali
@@ -1895,6 +2036,32 @@ settings:
     pillVision: Vede le immagini
     deleteAction: Elimina modello
     deleteFailed: Eliminazione non riuscita
+    activateDoneToast: Le nuove chat usano {0}.
+    activateFailed: Impossibile passare a {0}
+    deleteConfirm: Eliminare {0} dal disco?
+    deleted: '{0} eliminato.'
+    downloadAction: Scarica · {0}
+    downloadDoneToast: '{0} è pronto.'
+    downloadEta: ~{0} rimanenti
+    downloadEtaHours: '{0} h {1} min'
+    downloadEtaMinutes: '{0} min'
+    downloadEtaSeconds: '{0} sec'
+    downloadFailed: Download di {0} non riuscito
+    downloadPauseFailed: Impossibile mettere in pausa il download di {0}
+    downloadProgress: '{0} di {1}'
+    downloadResumeFailed: Impossibile riprendere il download di {0}
+    downloadSpeed: '{0}'
+    pillFullContext: Contesto completo {0}
+    pillUpTo: Fino a {0} di contesto
+    quickstartDetail: 'Un clic configura tutto: il motore locale, {0} (download di {1}) e il predefinito per le nuove chat. Nulla lascia questo computer.'
+    quickstartDetailReady: Un clic rende {0} il predefinito per le nuove chat. Tutto gira su questa macchina.
+    quickstartDoneToast: '{0} è configurato — le nuove chat girano su questa macchina.'
+    ram: '{0} RAM'
+    runtimeInstalledDetail: Build {0}, backend {1}. Hermes avvia e gestisce il server per te.
+    runtimeReady: Pronto · {0}
+    upToDateDetail: In esecuzione llama.cpp {0} ({1}).
+    updateDetail: Una build più recente di llama.cpp ({0}) è pronta per l'installazione — stai usando {1}. I modelli continuano a funzionare durante il download.
+    vram: '{0} memoria GPU'
   billing:
     freeTier:
       signIn: Accedi
@@ -1910,6 +2077,10 @@ settings:
     amountValidation:
       reloadTo: Ricarica a
       greaterThanThreshold: L'importo di ricarica deve essere maggiore della soglia.
+      decimal: '{0}: inserisci un importo in dollari con al massimo 2 decimali.'
+      maximum: '{0}: il massimo è {1}.'
+      minimum: '{0}: il minimo è {1}.'
+      positive: "{0}: l'importo deve essere maggiore di $0."
     stepUp:
       openVerification: Apri pagina di verifica
       dismiss: Ignora
@@ -1931,6 +2102,9 @@ settings:
       authenticationRequired: La tua banca richiede una verifica (3DS). Completala sul portale per concludere questo acquisto.
       expired: La tua carta è scaduta. Aggiornala sul portale.
       declined: La tua carta è stata rifiutata. Prova un'altra carta sul portale.
+      added: ${0} aggiunti.
+      failedBody: L'addebito non è andato a buon fine ({0}).
+      unconfirmedBody: "{0} L'esito dell'ultimo addebito non è confermato - controlla il saldo/storico prima di riprovare."
     title: Fatturazione
     preview: anteprima
     summary:
@@ -1951,6 +2125,7 @@ settings:
       processing: Elaborazione… verifica regolamento
       retry: Riprova
       openPortal: Apri portale
+      added: '{0} aggiunti. Il saldo si sta aggiornando.'
     plan:
       title: Piani
       changePlan: Cambia piano
@@ -1969,6 +2144,8 @@ settings:
       notScheduleable: Questo cambio non può essere programmato qui.
       scheduling: Programmazione…
       cancel: Annulla
+      alreadyOn: Sei già su {0} — niente da cambiare.
+      effectScheduled: 'Cambio a {0} — entra in vigore {1}. Nessun addebito ora; mantieni il piano attuale fino ad allora. Variazione crediti mensili: {2}.'
     autoReload:
       threshold: Soglia
       thresholdAria: Soglia ricarica automatica
@@ -2003,6 +2180,7 @@ settings:
           autoRefill: carta ricarica automatica
           customerDefault: predefinito cliente
           subPin: carta abbonamento
+          suffix: ' - {0}'
       buyCredits:
         description: Un singolo addebito sulla tua carta, aggiunto al tuo saldo oggi.
       autoRefill:
@@ -2015,10 +2193,15 @@ settings:
         turnOnCaption: Attiva la ricarica automatica dal portale
         distinctCardFallback: una carta diversa
         reconcileAction: Riconcilia ↗
+        chargesDescription: Addebita {0} automaticamente quando il saldo scende sotto {1}.
+        distinctCardCaption: Il riempimento automatico addebita {0} — riconcilia sul portale
       usage:
         subscriptionCredits:
           title: Crediti abbonamento
           barLabel: Crediti abbonamento rimanenti
+          captionResets: Si azzera il {0}
+          valueOf: '{0} di {1} rimasti'
+          valueOver: '{0} di {1} rimasti · {2} in eccesso'
         topupCredits:
           title: Crediti di ricarica
           caption: Non scadono
@@ -2027,12 +2210,16 @@ settings:
           barLabel: Limite di spesa mensile utilizzato
           captionDefault: Soglia predefinita
           captionSpending: Spesa remota mensile
+          valueUsed: '{0} di {1} utilizzati'
       planCard:
         freeTier: Gratuito
         chooseAction: Scegli ↗
         adjustPlanAction: Regola piano ↗
         unavailableCaption: I dettagli dell'abbonamento non sono disponibili; l'apertura del portale è comunque disponibile.
         noSubscriptionCaption: Nessun abbonamento attivo — i modelli a pagamento attingono ai crediti di ricarica.
+        cancellationCaption: Si annulla il {0}.
+        downgradeCaption: Cambia a {0} il {1}.
+        renewsCaption: Si rinnova il {0}
     errors:
       consentRequired:
         title: Conferma carta necessaria
@@ -2065,10 +2252,13 @@ settings:
       monthlyCapExceeded:
         title: Limite di spesa mensile raggiunto
         messageReached: 🔴 Limite di spesa mensile raggiunto.
+        messageHeadroom: 🔴 Limite di spesa mensile raggiunto — margine residuo di ${0}.
       rateLimited:
         title: Troppi addebiti in questo momento
+        message: 🟡 Troppi addebiti in questo momento (riprova tra ~{0} min). Non si tratta di un errore di pagamento.
       stripeUnavailable:
         title: Stripe sta avendo problemi
+        message: Stripe sta avendo problemi — riprova tra ~{0} min
       upgradeCapExceeded:
         title: Limite giornaliero di cambio piano raggiunto
         message: Limite giornaliero di cambio piano raggiunto — riprova domani
@@ -2084,6 +2274,10 @@ settings:
       default:
         title: Richiesta di fatturazione non riuscita
         message: Richiesta di fatturazione non riuscita.
+      remoteSpendingReconnect: '{0} Riconnetti da Impostazioni -> Gateway per ri-autorizzare questo dispositivo.'
+    creditsPerMonth: '{0} crediti/mese'
+    perMonth: '{0}/mese'
+    usageLabel: Utilizzo {0}
   providers:
     connectAccount: Collega un account
     haveApiKey: Hai invece una chiave API?
@@ -2102,6 +2296,13 @@ settings:
       title: Endpoint locale / personalizzato
       description: Indica Hermes verso qualsiasi endpoint compatibile con OpenAI (Zyphra, vLLM, llama.cpp, Ollama, ecc).
     loading: Caricamento provider...
+    failedRemove: Impossibile rimuovere {0}
+    removeConfirm: Rimuovere {0}?
+    removeExternalGeneric: '{0} è gestito dal proprio CLI — rimuovilo lì.'
+    removeKeyManaged: '{0} è configurato da una chiave API. Rimuovilo da Chiavi API.'
+    removeTerminalConfirm: Disconnettere {0}? Questo esegue "{0}" nel terminale per cancellare le credenziali.
+    removeTerminalRunning: Esecuzione della disconnessione di {0} nel terminale…
+    removedMessage: '{0} è stato rimosso.'
   sessions:
     loading: Caricamento sessioni archiviate…
     archivedTitle: Sessioni archiviate
@@ -2128,6 +2329,9 @@ settings:
     deleteFailed: Eliminazione non riuscita
     updateDirFailed: Impossibile aggiornare la directory predefinita
     clearDirFailed: Impossibile svuotare la directory predefinita
+    defaultsTo: 'Predefinito: {0}.'
+    deleteConfirm: Eliminare definitivamente "{0}"? Questa operazione non può essere annullata.
+    messages: '{0} messaggi'
   toolsets:
     loadingConfig: Caricamento configurazione
     savedTitle: Credenziali salvate
@@ -2190,6 +2394,11 @@ settings:
       openBackendSettings: Apri impostazioni terminal
       useLocal: Usa Locale
       switchedToLocal: I comandi terminal vengono ora eseguiti localmente. Si applica alle nuove sessioni.
+      failedSelect: Selezione di {0} non riuscita
+      needsSetupConfirmDescription: '{0} Le sessioni avviate dopo questa modifica non avranno tool di terminale o file fino al completamento della configurazione.'
+      needsSetupConfirmTitle: Selezionare {0} comunque?
+      selectedMessage: I comandi del terminale vengono ora eseguiti tramite {0}. Si applica alle nuove sessioni.
+      unavailableMessage: 'Hermes non può eseguire comandi shell al momento: {0} non è pronto. Passa a Locale, oppure completa la configurazione di {0} e riprova.'
     browserRealProfile:
       label: Usa il mio profilo browser reale
       description: Copia i login e i cookie del tuo browser predefinito in uno snapshot gestito con cui l'agent naviga. Il tuo profilo live non viene mai aperto direttamente. Si applica alle nuove sessioni.
@@ -2207,6 +2416,26 @@ settings:
         dontShowAgain: Non mostrare più
         notNow: Non ora
         enable: Usa il mio profilo
+    failedRemove: Rimozione di {0} non riuscita
+    failedReveal: Mostraggio di {0} non riuscito
+    failedSave: Salvataggio di {0} non riuscito
+    failedSelect: Selezione di {0} non riuscita
+    failedSelectCapability: Impostazione di {0} non riuscita
+    failedSelectModel: Selezione di {0} non riuscita
+    modelCount: '{0} modelli'
+    modelSelectedMessage: '{0} si applica alle nuove sessioni.'
+    nousAuthNeededMessage: "{0} è salvato ma funzionerà solo dopo aver effettuato l'accesso con il tuo account Nous."
+    postSetupCompleteMessage: '{0} installato.'
+    postSetupErrorMessage: La configurazione di {0} non è stata completata. Apri i log per vedere il motivo, quindi esegui di nuovo la configurazione.
+    postSetupFailed: Esecuzione della configurazione di {0} non riuscita
+    postSetupHint: Questo backend richiede un'installazione una tantum ({0}). Si esegue su questa macchina — potrebbe richiedere alcuni minuti.
+    removeConfirm: Rimuovere {0} da .env?
+    removedMessage: '{0} rimosso.'
+    savedMessage: '{0} aggiornato.'
+    selectedMessage: '{0} è ora attivo.'
+    webCapabilitySelectedMessage: '{0} gestisce ora la capacità web {1}.'
+    webExtractActive: 'Estrazione: {0}'
+    webSearchActive: 'Ricerca: {0}'
 skillDeepLink:
   installDescription: Questa skill sarà disponibile nelle nuove sessioni. Installa solo da fonti di cui ti fidi.
   installTo: Installa in
@@ -2215,6 +2444,8 @@ skillDeepLink:
   destinationChanged: La destinazione è cambiata. Chiudi questa finestra di dialogo e apri di nuovo il link di installazione.
   installed: Installato
   source: Origine
+  installComplete: “{0}” installato
+  installTitle: Installare “{0}”?
 skills:
   tabSkills: Skill
   tabToolsets: Strumenti
@@ -2307,6 +2538,34 @@ skills:
       save: Salva impostazioni
       required: Obbligatorio
       secretSet: •••••••• (impostato)
+      saveFailed: Impossibile salvare le impostazioni di {0}
+      saved: Impostazioni di {0} salvate.
+      secretStoredAs: Memorizzato nel .env del profilo come {0}, mai in config.yaml; lascia vuoto per mantenere il valore attuale.
+    alreadyInstalled: '{0} è già installato in questo profilo.'
+    catalogProvenance: Installato dal catalogo Hermes al pin {0}.
+    deepLinkCatalogUnknown: “{0}” non è presente nel catalogo plugin di Hermes. Nulla è stato installato.
+    halfAgentIn: Agent in {0}
+    installAgentHereTip: La parte desktop è caricata in questa app, ma la parte agent non è installata in {0}. Installala lì.
+    pinnedBadge: fissato @ {0}
+    pinnedProvenance: Fissato al commit {0}. Gli aggiornamenti vengono rifiutati finché non viene reinstallato con un nuovo pin.
+    settingsToggle: 'Impostazioni: {0}'
+    toggleFailed: Impossibile attivare/disattivare {0}
+    toolsetOff: Tool agent di {0} disabilitati per {1}
+    toolsetOn: Tool agent di {0} abilitati per {1}
+    toolsetToggleFailed: Impossibile attivare/disattivare i tool agent di {0}; il pannello Desktop è rimasto invariato
+    uninstallConfirmBody: Questa operazione elimina i file del plugin dal profilo {0}. Qualsiasi componente desktop incluso verrà rimosso. Puoi reinstallarlo dal catalogo o da Git in qualsiasi momento.
+    uninstallConfirmTitle: Disinstallare {0}?
+    uninstallDesktopConfirmBody: Questa operazione elimina {0} dalla cartella desktop-plugins di questo computer e lo scarica ora. Puoi reinstallarlo da Git o ripristinare la cartella in qualsiasi momento.
+    uninstallDesktopTip: Disinstalla {0} da questa app
+    uninstallFailed: Impossibile disinstallare {0}
+    uninstallTip: Disinstalla {0} da {1}
+    uninstalled: '{0} disinstallato. Riavvia il gateway per scaricarlo.'
+    uninstalledDesktop: '{0} disinstallato.'
+    updateConsentBody: 'Il nuovo pin del catalogo di {0} ({1}) aggiunge superfici non presenti nella versione installata. Applicalo solo se ti fidi di esse:'
+    updateConsentTitle: '{0} richiede di più'
+    updateFailed: Impossibile aggiornare {0}
+    updateToPin: Aggiorna a {0}
+    updated: '{0} aggiornato al pin del catalogo corrente. Riavvia il gateway per applicare.'
   officialCatalog: Disponibile per l'installazione
   officialPill: Ufficiale
   hub:
@@ -2355,6 +2614,24 @@ skills:
     previewFailed: Anteprima skill non riuscita
     scanFailed: Scansione di sicurezza non riuscita
     searchFailed: Ricerca hub non riuscita
+    alreadyInstalled: '"{0}" è già installato'
+    findings: '{0} rilevazioni'
+    installBlockedMessage: La scansione di sicurezza ha segnalato {0} elementi da rivedere e la skill proviene da una fonte non verificata. Leggi la scansione prima di decidere se fidarti dell'autore.
+    installBlockedTitle: Impossibile installare {0}
+    installStarted: Installazione di {0}...
+    resultCount: '{0} risultati in {1}ms'
+    timedOut: 'Timeout: {0}'
+    uninstallStarted: Disinstallazione di {0}...
+  appliesToNewSessions: '{0} si applica alle nuove sessioni.'
+  bulkUpdated: Aggiornati {0} elementi per le nuove sessioni.
+  configureToolset: Configura {0}
+  emptyNoneAvailable: Nessun {0} disponibile al momento.
+  emptyNoneFound: Nessun {0} trovato
+  emptyNothingMatches: Nessun risultato per “{0}”.
+  failedToUpdate: Aggiornamento di {0} non riuscito
+  toggleToolset: Attiva/disattiva toolset {0} {1}
+  toolsetsEnabled: '{0}/{1} toolset abilitati'
+  usageCount: usato {0}×
 starmap:
   title: Grafo Memoria
   close: Chiudi grafo memoria
@@ -2379,6 +2656,8 @@ starmap:
   importEmpty: Incolla un codice mappa per caricarla.
   importedBadge: mappa importata
   resetToMine: Torna alla mia mappa
+  importSuccess: Caricata una mappa con {0} nodi.
+  subtitle: '{0} skill in {1} categorie'
 agents:
   extendedTranscript: Trascrizione estesa
   transcriptTruncated: Mostrando gli ultimi 16 KiB
@@ -2401,6 +2680,24 @@ agents:
   stopRequested: Arresto richiesto
   requestRejected: Il subagent non ha accettato la richiesta
   ageNow: adesso
+  activeCount: '{0} attivi'
+  ageDays: '{0}g fa'
+  ageHours: '{0}h fa'
+  ageMinutes: '{0}m fa'
+  ageSeconds: '{0}s fa'
+  agentsCount: '{0} agent'
+  delegation: Delega {0}
+  durationMinutes: '{0}m {1}s'
+  durationSeconds: '{0}s'
+  failedCount: '{0} falliti'
+  filesCount: '{0} file'
+  moreAgents: +{0} altri agent
+  moreFiles: +{0} altri file
+  tokens: '{0} tok'
+  toolsCount: '{0} tool'
+  updatedAgo: aggiornato {0}
+  workers: '{0} worker'
+  workersActive: '{0} attivi'
 commandCenter:
   close: Chiudi centro comandi
   paletteTitle: Palette comandi
@@ -2430,6 +2727,7 @@ commandCenter:
     generatedTag: Generata
     adoptFailed: Impossibile adottare quella mascotte.
     noneAvailable: Nessuna mascotte disponibile — scegline una qui sotto per installarla.
+    toggleFailed: Impossibile accendere/spegnere il pet.
   generatePet:
     title: Genera una mascotte
     placeholder: Descrivi una mascotte da generare…
@@ -2457,6 +2755,7 @@ commandCenter:
     referenceImageInvalid: Impossibile leggere quell'immagine di riferimento. Prova un PNG, JPG, WebP o GIF.
     adopt: Adotta
     startOver: Ricomincia
+    hatchRow: Schizzo fotogramma {0} di {1}…
   installTheme:
     title: Installa tema…
     pageTitle: Installa tema
@@ -2467,6 +2766,7 @@ commandCenter:
     install: Installa
     installing: Installazione...
     installed: Installato
+    installs: '{0} installazioni'
   settingsFields: Campi impostazioni
   mcpServers: Server MCP
   archivedChats: Chat archiviate
@@ -2581,6 +2881,23 @@ commandCenter:
     resetFailed: Reimpostazione memoria non riuscita
     running: In esecuzione...
     viewLog: Registro azioni
+    actionFailed: '{0} non è riuscito ad avviarsi'
+    actionStarted: '{0} avviato — in coda al log...'
+    bytes: '{0}'
+    curatorLastRun: Ultima esecuzione {0}
+    memoryProvider: 'Provider attivo: {0}'
+    resetConfirm: Eliminare {0}? Questa azione non può essere annullata.
+    resetDone: Eliminati {0}.
+  actions: '{0} azioni'
+  actualCost: costo effettivo {0}
+  days: '{0}g'
+  hermesActiveSessions: Hermes {0} · Sessioni attive {1}
+  newSessionInProject: Nuova sessione in {0}
+  noUsage: Nessun utilizzo negli ultimi {0} giorni.
+  openFolderAt: Apri cartella come progetto — {0}
+  sharedGatewayRestartDescription: 'Tutti i bot su questo dispositivo si ricollegheranno: {0}'
+  sharedGatewayRestarted: Gateway condiviso riavviato ({0} bot)
+  startInBranch: Nuova conversazione in {0}
 messaging:
   search: Cerca messaggistica...
   statusFilter:
@@ -2666,6 +2983,9 @@ messaging:
     applying: Salvataggio…
     pairingExpired: L'abbinamento Telegram è scaduto. Avvia una nuova configurazione QR per riprovare.
     savedRestarting: Telegram salvato; riavvio del gateway in corso…
+    expiresIn: Scade tra {0}
+    savedRestartFailed: Telegram salvato; riavvio del gateway non riuscito{0}
+    stillWaiting: 'Ancora in attesa di Telegram. Nuovo tentativo dopo: {0}'
   fieldCopy:
     TELEGRAM_BOT_TOKEN:
       label: Token bot
@@ -2757,6 +3077,28 @@ messaging:
     WHATSAPP_ALLOWED_USERS:
       label: Utenti WhatsApp consentiti
       help: Consigliato. Numeri di telefono o ID WhatsApp, uno per casella.
+  advanced: Avanzate ({0})
+  approvedUser: '{0} approvato'
+  approvedUsers: Utenti approvati ({0})
+  clearField: Svuota {0}
+  disableAria: Disabilita {0}
+  enableAria: Abilita {0}
+  failedApprove: Approvazione di {0} non riuscita
+  failedClear: Svuotamento di {0} non riuscito
+  failedRevoke: Revoca di {0} non riuscita
+  failedSave: Salvataggio di {0} non riuscito
+  failedUpdate: Aggiornamento di {0} non riuscito
+  keyCleared: '{0} svuotato'
+  pendingAria: '{0} richieste di pairing in sospeso'
+  pendingRequests: Richieste in sospeso ({0})
+  platformDisabled: '{0} disabilitato'
+  platformEnabled: '{0} abilitato'
+  revokeAria: Revoca {0}
+  revokeDesc: "{0} perderà l'accesso e smetterà di essere riconosciuto al prossimo messaggio."
+  revokedUser: '{0} revocato'
+  setupSaved: Configurazione di {0} salvata
+  setupUpdated: La configurazione di {0} è stata aggiornata.
+  waitingSince: '{0} min fa'
 webhooks:
   search: Cerca webhook...
   loading: Caricamento webhook...
@@ -2812,6 +3154,13 @@ webhooks:
     slack: Slack
     email: Email
     github_comment: Commento GitHub
+  createFailed: 'Creazione non riuscita: {0}'
+  deleteFailed: Eliminazione non riuscita di "{0}"
+  disabled: 'Disabilitato: "{0}"'
+  enabled: 'Abilitato: "{0}"'
+  restartFailed: Riavvio gateway non riuscito{0}
+  subscriptions: Abbonamenti ({0})
+  toggleFailed: Attivazione/disattivazione non riuscita di "{0}"
 profiles:
   close: Chiudi profili
   nameHint: Lettere minuscole, cifre, trattini e underscore. Deve iniziare con una lettera o una cifra.
@@ -2839,6 +3188,11 @@ profiles:
     installDeviceDesc: Questo installerà Hermes localmente, poi aprirà una nuova sessione su questo computer. Nulla viene installato finché non confermi.
     installDeviceConfirm: Installa localmente
     connectExistingInstead: Connetti a esistente invece
+    deleteOn: su {0}
+    gateway: Profili su {0}
+    gatewayUnreachable: '{0} · irraggiungibile'
+    onGateway: '{0} · {1}'
+    switchTo: Passa a {0} su {1}
   remoteOverride:
     menuItem: Connetti a un host remoto…
     description: Le sessioni in questo profilo verranno eseguite sull'Hermes remoto a cui lo punti, invece che su questo computer.
@@ -2859,6 +3213,13 @@ profiles:
     removeFailed: Impossibile rimuovere la connessione remota
     authFailedTitle: L'host remoto ha rifiutato il token salvato
     updateToken: Inserisci nuovo token…
+    authFailedMessage: '{0} ha rifiutato il token salvato per {1}. Potrebbe essere stato modificato sul lato remoto.'
+    badge: Esegue su {0}
+    collisionWarning: Un gateway denominato “{0}” esiste già nelle Impostazioni. Questa connessione del profilo è separata e non lo modificherà.
+    confirmNote: Le nuove chat in {0} verranno eseguite su {1}. Quel computer eseguirà comandi e leggerà file lì, non su questo. Connettiti solo a un host di cui ti fidi.
+    removedMessage: '{0} ora viene eseguito su questo computer'
+    savedMessage: '{0} ora viene eseguito su {1}'
+    title: Connetti {0} a un host remoto
   actions: Azioni
   color: Colore…
   colorFor: Colore
@@ -2929,6 +3290,19 @@ profiles:
   failedSaveSoul: Salvataggio SOUL.md non riuscito
   failedCreate: Creazione profilo non riuscita
   failedRename: Rinomina profilo non riuscita
+  count: '{0} profili'
+  defaultSet: '{0} è ora il predefinito'
+  invalidName: Nome non valido. {0}
+  setColor: Imposta colore {0}
+  skills: '{0} skill'
+  soulPlaceholder: "Il prompt di sistema / la persona per questo profilo.\nLascia vuoto per mantenere il predefinito di {0}."
+  status:
+    needsInput: '{0} sessioni necessitano della tua risposta'
+    unread: '{0} sessioni non lette'
+    working: '{0} sessioni in esecuzione'
+  switchConnectionFailed: Impossibile connettersi a {0}
+  switchToConnection: Passa a {0}
+  switchToProfile: Passa a {0}
 modelAssignment:
   saveFailed: Hermes non ha salvato quella modifica del modello.
   confirmTitle: Avviso selezione modello
@@ -3060,6 +3434,13 @@ cron:
     failedLoad: Caricamento blueprint non riuscito
     emptyTitle: Nessun blueprint disponibile
     emptyDesc: Nessun blueprint di automazione è disponibile su questo backend.
+  count: '{0} job'
+  dayFallback: giorno {0}
+  everyDayAt: Ogni giorno alle {0}
+  everyDayOfWeekAt: Ogni {0} alle {1}
+  everyHourAt: Ogni ora alle :{0}
+  monthlyOnDayAt: Mensilmente il giorno {0} alle {1}
+  weekdaysAt: Giorni feriali alle {0}
 artifacts:
   search: Cerca artefatti...
   refresh: Aggiorna artefatti
@@ -3091,12 +3472,16 @@ artifacts:
   chat: Chat
   copyUrl: Copia URL
   copyPath: Copia percorso
+  goToPage: Vai alla pagina {1} di {0}
+  rangeOf: '{0}-{1} di {2}'
 artifactCard:
   kind:
     code: Codice
     html: Pagina interattiva
     svg: Grafica
   open: Apri
+  generating: Generazione… {0} righe
+  versionBadge: '{0} versioni'
 artifactPreview:
   olderVersion: Versione precedente
   newerVersion: Versione successiva
@@ -3107,6 +3492,7 @@ artifactPreview:
   openInBrowserFailed: Impossibile aprire nel browser
   missingTitle: Artefatto non disponibile
   missingBody: Questo artefatto non è più presente nel registro locale.
+  versionOf: v{0} di {1}
 sidebar:
   filter:
     grouping: Raggruppamento
@@ -3182,6 +3568,7 @@ sidebar:
     title: Il database delle sessioni è danneggiato
     action: 'Esci da Hermes su questo profilo, quindi ispeziona il file senza modificarlo, oppure ripristina uno snapshot:'
     guide: Guida al ripristino
+    body: Hermes non può leggere tutta la cronologia delle sessioni per {0}. Le chat mancanti da questo elenco non sono state eliminate; il file in cui sono memorizzate è danneggiato.
   noFilterMatches: Nessuna sessione corrisponde a questi filtri
   projects:
     showAllSessions: Mostra tutte le sessioni
@@ -3253,6 +3640,14 @@ sidebar:
     removeWorktreeDirty: Questo worktree ha modifiche non commitizzate. Forza la rimozione (scarta quelle modifiche) o nascondi solo la corsia e tienilo su disco.
     forceRemove: Rimuovi forzatamente
     back: Tutti i progetti
+    branchOff:
+      after: ''
+      before: 'crea branch da '
+    enter: Apri {0}
+    movedTo: Spostato in {0}
+    reorder: Riordina {0}
+    showAllCount: Mostra tutte le {0} sessioni
+    toggle: Mostra sessioni di {0}
   loading: Caricamento…
   loadMore: Carica altro
   row:
@@ -3294,6 +3689,11 @@ sidebar:
     ageDay: g
     ageHour: h
     ageMin: m
+    deleteDesc: Questo eliminerà definitivamente “{0}”. Questa operazione non può essere annullata.
+    handoffOrigin: Passato da {0}
+    messageCount: '{0} messaggi'
+    ownedByProfile: 'Profilo: {0}'
+    untitledChat: Chat {0}
   dateDivider:
     today: Più tardi oggi
     yesterday: Ieri
@@ -3304,6 +3704,12 @@ sidebar:
     working: In lavorazione
     done: Completato
   markAllRead: Segna tutto come letto
+  loadCount: Carica altri {0}
+  messageCount: '{0} messaggi'
+  newSessionIn: Nuova sessione in {0}
+  noMatch: Nessuna sessione corrisponde a “{0}”.
+  showMoreIn: Mostra altri {0} in {1}
+  toolCallCount: '{0} chiamate tool'
 composer:
   message: Messaggio
   placeholderStarting: Avvio di Hermes...
@@ -3444,6 +3850,7 @@ composer:
   localSetup:
     title: Potrebbe essere eseguito sul tuo computer
     action: Mostrami
+    text: '{0} è adatto a questo computer. Gratuito, e le chat restano sul tuo computer.'
   queueEdit: Modifica
   queueExpand: Espandi
   queueCollapse: Comprimi
@@ -3485,8 +3892,16 @@ composer:
   mcpSuggestions:
     cancelTip: Clicca per annullare
     addedTip: Connesso — i suoi strumenti sono pronti in questa chat
+    added: Aggiunto {0}
+    connectFailed: Impossibile connettersi a {0}
+    connecting: Connessione a {0}…
+    label: Aggiungi {0}
+    tip: Suggerito perché hai menzionato “{0}” — clicca per connettere
   skillSuggestions:
     doneTip: La skill viene caricata quando invii
+    done: Aggiunto /{0}
+    label: 'Usa skill: {0}'
+    tip: Hai menzionato “{0}” — clicca per iniziare con quella skill
   githubSuggestions:
     label: Configura GitHub
     tip: GitHub funziona tramite le skill CLI gh qui — clicca per collegare il tuo account
@@ -3495,11 +3910,17 @@ composer:
   repairSuggestions:
     workingTip: Clicca per annullare
     doneTip: Le nuove credenziali sono attive in questa chat
+    done: Riconnesso {0}
+    failed: Impossibile riconnettersi a {0}
+    label: Riconnetti {0}
+    tip: Una chiamata a {0} è appena fallita con un errore di connessione
+    working: Riconnessione a {0}…
   cronSuggestions:
     label: Programma questo
     prefix: 'Imposta questo come lavoro pianificato:'
     done: Segnato per la pianificazione
     doneTip: Invialo e l'agente creerà il lavoro
+    tip: “{0}” sembra ricorrente — eseguilo su un piano invece
   snippets:
     codeReview:
       label: Revisione del codice
@@ -3513,6 +3934,17 @@ composer:
       label: Spiega questo
       description: Spiega come funziona il codice selezionato e collega ai file chiave.
       text: Per favore spiega come funziona questo e indicami i file chiave.
+  attachments: '{0} allegati'
+  couldNotPreview: Impossibile antepporre {0}
+  previewLabel: Anteprima {0}
+  queued: '{0} in coda'
+  queuedPaused: '{0} in coda — in pausa'
+  removeAttachment: Rimuovi {0}
+  wakeWord: Wake word "{0}"
+  wakeWordListening: 'Wake word: "{0}" — in ascolto'
+  wakeWordOff: 'Wake word: "{0}" — spenta'
+  wakeWordPausedVoice: 'Wake word: "{0}" — in pausa durante la chat vocale'
+  wakingProfile: Avvio di {0}…
 statusStack:
   hideStack: Nascondi pila di stato
   showStack: Mostra pila di stato
@@ -3586,6 +4018,33 @@ statusStack:
     continuationBusy: Obiettivo ripreso — sessione occupata, fermare prima la risposta corrente (pulsante Stop o Esc) per continuare
     dismissError: Ignora errore
     add: Aggiungi
+    actionFailed: 'Azione non riuscita: {0}'
+    controlUnavailable: 'Controlli di sessione non disponibili: {0}'
+    copyCriterion: Copia criterio {0}
+    criteriaHeader: Criteri · {0}
+    gateAttempts: '{0}/{1} tentativi'
+    gateLastExit: 'Codice di uscita: {0}'
+    gateTimeout: timeout {0}s
+    goalActiveTurns: Turno {0}/{1}
+    goalDoneTurns: '{0} turni'
+    goalTurn: Turno {0}
+    heartbeatEveryHours: ogni {0}h
+    heartbeatEveryMinutes: ogni {0}m
+    heartbeatEverySeconds: ogni {0}s
+    heartbeatFiredCount: Attivato {0} volte
+    heartbeatNext: prossimo {0}
+    loopEveryHours: ogni {0}h
+    loopEveryMinutes: ogni {0}m
+    loopEverySeconds: ogni {0}s
+    loopNext: prossimo {0}
+    loopRunCount: Esecuzione {0}/{1}
+    loopRuns: '{0} esecuzioni'
+    removeCriterion: Rimuovi criterio {0}
+    removeCriterionConfirmBody: Sei sicuro di voler rimuovere il criterio {0}?
+    removeCriterionConfirmTitle: Rimuovere il criterio {0}?
+    waitPid: In attesa del processo {0}
+    waitSession: In attesa della sessione {0}
+    waitUntil: In attesa fino a {0}
   coding:
     title: Albero di lavoro
     noBranch: Nessun ramo
@@ -3624,6 +4083,18 @@ statusStack:
     agentShipPrompt: Rivedi le modifiche correnti, committele con un messaggio conventional-commit chiaro, pusha il ramo e apri una pull request.
     newBranch: Nuovo ramo
     worktrees: Worktree
+    ahead: '{0} avanti'
+    behind: '{0} indietro'
+    branchOffFrom: Nuovo branch da {0}
+    changed: '{0} modificati'
+    commitPlaceholder: Messaggio ({0} per commit)
+    switchFailed: Impossibile passare a {0}
+    switchTo: Passa a {0}
+  background: '{0} Background'
+  exit: uscita {0}
+  previousTodos: Compiti precedenti {0}/{1}
+  subagents: '{0} Subagent'
+  todos: Compiti {0}/{1}
 updates:
   discontinuedTitle: Questa build di Hermes non è più supportata
   discontinuedBody: Questa build di Hermes non è più supportata e potrebbe rompersi — disinstallala. I tuoi dati restano su disco.
@@ -3718,6 +4189,7 @@ updates:
     notAvailable: Aggiornamento non disponibile per questo backend.
     failed: Aggiornamento backend fallito.
     noReturn: Il backend non è tornato online. L'aggiornamento potrebbe non essere completato — controlla l'host del backend.
+    owed: 'Backend aggiornato, ma ancora dovuti: {0}. Rielabora `hermes update` per completarli.'
   appName: Hermes
   versionUnavailable: Versione non disponibile
   checkNow: Verifica ora
@@ -3754,6 +4226,17 @@ updates:
   versionDetailsRuntimeExternal: Esterno (usa il runtime della macchina)
   versionDetailsInstallId: ID installazione
   versionDetailsUncommittedChanges: modifiche non commit
+  availableBodyRelease: La versione {0} è pronta per l'installazione.
+  daysAgo: '{0}g fa'
+  hoursAgo: '{0}h fa'
+  lastChecked: Ultimo controllo {0}
+  minAgo: '{0} min fa'
+  moreChanges: + {0} altre modifiche incluse.
+  pidLabel: PID {0}
+  portLabel: Porta {0}
+  releaseAvailable: La versione {0} è disponibile.
+  updateReady: Un nuovo aggiornamento è pronto ({0} modifiche incluse).
+  version: Versione {0}
 handoffTour:
   profileTitle: Il tuo primo task viene eseguito sul profilo predefinito
   profileText: Questa barra cambia profilo. Quello acceso ora è predefinito, dove vive la sessione del task. L'altro è il profilo di configurazione, dove vive la chat di benvenuto.
@@ -3762,6 +4245,7 @@ handoffTour:
   stayTitle: Hermes è a un clic di distanza
   stayText: Passa al profilo di configurazione e apri Benvenuto in Hermes quando vuoi una mano. Resta lì.
   localTitle: Questa macchina può eseguire modelli localmente
+  localText: '{0} è compatibile con il tuo hardware. Funziona gratuitamente e le chat non lasciano mai il tuo computer. Selezionalo qui, nel menu dei modelli, quando vuoi.'
 install:
   stageStates:
     pending: In attesa
@@ -3827,6 +4311,13 @@ install:
   copyOutput: Copia output
   reloadRetry: Ricarica e riprova
   openLogs: Apri log
+  authNeedsOauth: Accedi con {0} prima di testare questo gateway.
+  currentStage: ' -- ora: {0}'
+  lines: '{0} righe'
+  progress: '{0} di {1} passaggi completati'
+  signInWith: Accedi con {0}
+  testSucceeded: Connesso a {0}{1}.
+  unsupportedDesc: L'installazione automatica al primo avvio non è ancora disponibile su {0}. Apri Terminale ed esegui il comando qui sotto, quindi riavvia questa app. I lanci successivi salteranno questo passaggio.
 onboarding:
   headerTitle: Configuriamo Hermes Agent per te
   headerDesc: Collega un provider di modelli per iniziare a chattare. La maggior parte delle opzioni richiede un solo clic.
@@ -3899,6 +4390,17 @@ onboarding:
   free: Gratuito
   change: Modifica
   startChatting: Inizia
+  connectedPicking: '{0} connesso. Selezione di un modello predefinito...'
+  connectedProvider: '{0} connesso'
+  deviceCodeOpened: 'Abbiamo aperto {0} nel tuo browser. Inserisci questo codice lì:'
+  docs: Documentazione di {0}
+  externalPending: "{0} effettua l'accesso tramite il proprio CLI. Esegui questo comando in un terminale, poi torna qui e seleziona \"Ho effettuato l'accesso\":"
+  openedBrowser: Abbiamo aperto {0} nel tuo browser.
+  price: '{0} in / {1} out per Mtok'
+  signInDidNotFinish: L'accesso con {0} non è stato completato. Controlla la connessione internet e riprova, oppure seleziona un provider diverso.
+  signInWith: Accedi con {0}
+  startingSignIn: Avvio dell'accesso per {0}...
+  verifyingCode: Verifica del tuo codice con {0}...
 freeTier:
   providerRowTitle: Nous · livello gratuito
   providerRowPitch: Accedi con un account Nous per sbloccare più modelli e strumenti.
@@ -3956,6 +4458,10 @@ freeTier:
     signInBelow: L'accesso è gratuito. Scegli Nous qui sotto.
     tryAgain: Riprova
     retrying: Riprovo…
+    rateLimited: Molte persone stanno iniziando ora, quindi Hermes riproverà tra {0}. L'accesso è gratuito e salta l'attesa.
+  busyBody: Hermes non è riuscito a completare l'accesso perché il servizio Nous è occupato. Riprova tra {0}. Nel frattempo la tua sessione è ancora qui.
+  signedInAs: Accesso effettuato come {0}
+  statusLabel: Nous · {0}
 modelPicker:
   title: Cambia modello
   current: 'attuale:'
@@ -4008,9 +4514,21 @@ shell:
     localSetup:
       title: Esegui localmente · gratuito, privato
       action: Configura
+      text: '{0} è compatibile con questo computer · download di {1}'
     limited: Limitato
     poolUnknown: Utilizzo non disponibile
     poolUnavailable: Accedi di nuovo
+    limitedTip: '{0} ha raggiunto il limite di utilizzo. Si resetta alle {1}; puoi comunque scegliere un modello per dopo.'
+    limitedUntil: Limitato fino alle {0}
+    modelLimitedTip: Questo modello ha raggiunto il proprio limite e si resetta alle {0}. Gli altri modelli qui funzionano ancora.
+    modelResets: reset alle {0}
+    poolAccount: Account {0}
+    poolAccounts: '{0} account'
+    poolLimited: '{0}/{1} account limitati'
+    priceTitle: Input {0}/Mtok · Output {1}/Mtok · Lettura cache {2}/Mtok
+    usageLeft: '{0}% rimanente · reset alle {1}'
+    usageTip: '{0} è vicino al limite di utilizzo.'
+    usageWindow: '{0}: {1}% rimanente, reset alle {2}'
   modelOptions:
     noOptions: Nessuna opzione per questo modello
     options: Opzioni
@@ -4028,6 +4546,7 @@ shell:
     ultra: Ultra
     updateFailed: Aggiornamento opzione modello non riuscito
     fastFailed: Aggiornamento modalità veloce non riuscito
+    sendsOnRoute: invia {0} su questo percorso
   gatewayMenu:
     gateway: Gateway
     connected: Connesso
@@ -4042,6 +4561,7 @@ shell:
     recentActivity: Attività recente
     viewAllLogs: Vedi tutti i log →
     messagingPlatforms: Piattaforme di messaggistica
+    connection: 'Connessione: {0}'
   approvalMode:
     title: Modalità approvazione
     manual: Manuale
@@ -4050,6 +4570,7 @@ shell:
     smartDescription: Valuta automaticamente le azioni e chiedi quando necessario
     'off': Disattivata
     offDescription: Esegui senza prompt di approvazione
+    ariaLabel: 'Modalità di approvazione: {0}'
   statusbar:
     unknown: sconosciuto
     restart: riavvia
@@ -4119,6 +4640,8 @@ shell:
       empty: Nessun dato di contesto al momento
       loading: Caricamento ripartizione…
       title: Utilizzo Contesto
+      percentFull: '{0}% Pieno'
+      tokenSummary: '{0} / {1} Token'
     focusedSince: Focalizzato da
     focusedSinceTitle: Tempo da quando questa chat è stata focalizzata — non quanto tempo è in esecuzione un turno
     yoloOn: YOLO attivo — approvazione automatica di comandi pericolosi. Shift+click per alternare globalmente.
@@ -4128,6 +4651,27 @@ shell:
     switchModel: Cambia modello
     openModelPicker: Apri selettore modelli
     modelPinned: fissato da te; le nuove chat usano questo invece del predefinito Impostazioni
+    backendLabel: backend v{0}
+    backendVersion: Backend v{0}
+    branch: branch {0}
+    clientLabel: client v{0}
+    commit: commit {0}
+    commitsBehind: '{0} commit in ritardo su {1}'
+    compressions: 'Compressioni: {0}'
+    connectionCloud: 'Cloud: {0}'
+    connectionCloudTooltip: Hermes Cloud · {0}
+    connectionRemote: 'Remoto: {0}'
+    connectionRemoteTooltip: Remoto · {0}
+    connectionSsh: 'SSH: {0}'
+    connectionSshTooltip: SSH · {0}
+    desktopVersion: Hermes Desktop v{0}
+    failed: '{0} falliti'
+    messagingDegraded: '{0} non disponibile'
+    modelTitle: 'Modello · {0}: {1}'
+    providerModelTitle: '{0} · {1}'
+    releaseAvailable: La versione {0} è disponibile.
+    running: '{0} in esecuzione'
+    subagents: '{0} subagent'
 rightSidebar:
   terminalReadOnly: Output solo lettura
   terminalReadOnlyHelp: Per rispondere ai prompt, arresta il comando in background ed eseguilo in un nuovo terminale. Il nuovo terminale apre un shell separato; non si connette a questo processo.
@@ -4169,6 +4713,10 @@ rightSidebar:
   terminalCloseOthers: Chiudi altri
   terminalCloseAll: Chiudi tutti
   addToChat: Aggiungi alla chat
+  couldNotPreview: Impossibile anteprima {0}
+  folderTip: '{0}'
+  remotePickerCreateFolderFailed: Impossibile creare la cartella ({0}).
+  unreadableBody: Impossibile leggere questa cartella ({0}).
 preview:
   tab: Anteprima
   pin: Fissa all'area di lavoro
@@ -4220,6 +4768,9 @@ preview:
     empty: Nessun messaggio della console per ora.
     promptHeader: 'Console anteprima:'
     sentTitle: Inviato alla chat
+    messages: '{0} messaggi della console'
+    selected: '{0} selezionati'
+    sentMessage: '{0} voci di log aggiunte al compositore'
   web:
     appFailedToBoot: L'app di anteprima non è riuscita ad avviarsi
     serverNotFound: Server non trovato
@@ -4259,6 +4810,22 @@ preview:
     commentPlaceholder: Aggiungi un commento...
     saveComment: Salva
     cancelComment: Annulla commento
+    addComments: Aggiungi {0} commenti
+    commentTitle: Commento {0}
+    failedRestarting: 'Riavvio del server non riuscito: {0}'
+    fileChanged: 'File modificato, ricaricamento anteprima: {0}'
+    filesChanged: '{0} modifiche ai file, ricaricamento anteprima: {1}'
+    finishedRestarting: Hermes ha completato il riavvio del server di anteprima{0}
+    loadFailedConsole: 'Caricamento non riuscito{0}: {1}'
+    lookingRestart: Hermes sta cercando un server di anteprima da riavviare ({0})
+    openTarget: Apri {0}
+    startRestartFailed: 'Impossibile avviare il riavvio del server: {0}'
+    watchFailed: 'Impossibile monitorare il file di anteprima: {0}'
+  binaryBody: L'anteprima di {0} potrebbe mostrare testo illeggibile.
+  largeBody: '{0} è di {1}. Hermes mostrerà solo i primi 512 KB.'
+  missingBody: '{0} è stato eliminato, spostato o la sua posizione temporanea è stata cancellata. Questa scheda non verrà ripristinata al prossimo avvio.'
+  noInlineBody: '{0} può comunque essere allegato come contesto.'
+  saveFailed: 'Impossibile salvare: {0}'
 interfaceMode:
   title: Modalità interfaccia
   hint: Cambia ciò che viene mostrato, non ciò che Hermes può fare.
@@ -4303,6 +4870,19 @@ zones:
   templatePriority: Priorità
   saveApply: Salva e applica
   notExpressible: questa disposizione è interconnessa (pinwheel) — non ancora esprimibile come divisioni annidate
+  customZoneName: Zona personalizzata {0}
+  deletePreset: Elimina {0}
+  hideStripTab: Nascondi {0}
+  layoutNamePlaceholder: Nome layout ({0})
+  mergeZones: Unisci {0} zone
+  missingPane: 'pannello mancante: {0}'
+  pluginDisabled: Plugin "{0}" disabilitato
+  showStripTab: Mostra {0}
+  tabCount: '{0} schede'
+  toggleStripTab: Attiva/disattiva scheda {0}
+  zoneCount: '{0} zone'
+  zoneMenuLabel: Opzioni zona per {0}
+  zoneTag: zona {0}
 contextMenu:
   link:
     openInApp: Apri nel browser in-app
@@ -4360,16 +4940,22 @@ assistant:
     errorCodes:
       billing:
         title: Credito esaurito
+        body: Il tuo account {0} non ha più crediti. Ricarica o cambia provider, poi invia di nuovo.
       rate_limit:
         title: Il servizio AI è occupato
+        body: '{0} sta limitando le richieste in questo momento. Aspetta un minuto, poi riprova.'
       upstream_rate_limit:
         title: Il servizio AI è occupato
+        body: '{0} sta limitando le richieste in questo momento. Aspetta un minuto, poi riprova.'
       overloaded:
         title: Il servizio AI è sovraccarico
+        body: '{0} sta avendo problemi in questo momento. Riprova tra un momento o cambia provider.'
       server_error:
         title: Il servizio AI ha avuto un problema
+        body: '{0} ha restituito un errore del server. Riprova tra un momento o cambia provider.'
       timeout:
         title: Impossibile raggiungere il servizio AI
+        body: Non è stato possibile raggiungere {0} o non ha risposto in tempo. Controlla la connessione internet, poi riprova.
       stream_drop:
         title: La risposta è stata interrotta
         body: La connessione si è interrotta prima che la risposta finisse. Riprova per inviarla di nuovo.
@@ -4378,8 +4964,10 @@ assistant:
         body: Hermes ha terminato questo turno senza una risposta. Riprova per inviarla di nuovo.
       upstream_blocked:
         title: Un firewall ha bloccato la richiesta
+        body: Un firewall o CDN davanti a {0} ha bloccato la richiesta prima che raggiungesse il modello — la tua chiave è probabilmente valida. Imposta un header User-Agent tramite extra_headers del provider nelle Impostazioni, o cambia provider, poi invia di nuovo il messaggio.
       ssl_cert_verification:
         title: Connessione sicura non riuscita
+        body: Hermes non è riuscito a verificare la connessione sicura con {0}. Controlla le impostazioni di rete o proxy, o cambia provider, poi invia di nuovo il messaggio.
       context_overflow:
         title: Questa conversazione è troppo lunga
         body: La conversazione non rientra più nel modello. Comprimila o avvia una nuova chat, poi invia di nuovo.
@@ -4388,19 +4976,25 @@ assistant:
         body: La richiesta era troppo grande per il modello. Comprimi la conversazione o avvia una nuova chat, poi invia di nuovo.
       model_not_found:
         title: Questo modello non è disponibile
+        body: '{0} non offre questo modello sul tuo account. Scegli un altro modello, poi invia di nuovo il messaggio.'
       provider_policy_blocked:
         title: Questo modello è bloccato dalle impostazioni del tuo account
+        body: '{0} non ha instradato questa richiesta a causa delle impostazioni di dati o privacy del tuo account. Scegli un altro modello o cambia provider.'
       content_policy_blocked:
         title: Il servizio AI ha rifiutato questa richiesta
+        body: '{0} non ha risposto a questo messaggio. Modificalo e invialo di nuovo.'
       format_error:
         title: Il servizio AI ha rifiutato la richiesta
+        body: '{0} non ha accettato la struttura di questa richiesta. Cambia provider o invia le diagnostiche così possiamo indagare.'
       truncated:
         title: La risposta è stata troncata
         body: Il modello si è fermato prima di finire. Riprova per ottenere una risposta completa.
       invalid_response:
         title: Il servizio AI ha inviato una risposta illeggibile
+        body: '{0} ha restituito qualcosa che Hermes non poteva leggere. Riprova tra un momento.'
       empty_response:
         title: Il servizio AI ha inviato una risposta vuota
+        body: '{0} non ha restituito nulla per questo messaggio. Riprova tra un momento.'
       loop_error:
         title: Hermes è rimasto bloccato in un loop
         body: La risposta continuava a ripetere gli stessi passaggi, quindi Hermes l'ha arrestata. Riprova, o avvia una nuova chat se succede di nuovo.
@@ -4431,6 +5025,12 @@ assistant:
       free_tier_refused:
         title: Hermes non è riuscito a inviarlo senza accesso
         body: L'accesso con un account Nous è gratuito.
+      auth:
+        body: Le credenziali salvate per {0} non sono state accettate. Correggile nelle Impostazioni o cambia provider, poi invia di nuovo il messaggio.
+        title: '{0} ha rifiutato il tuo accesso'
+      auth_permanent:
+        body: Le credenziali salvate per {0} non sono valide o sono state revocate. Aggiornale o cambia provider, poi invia di nuovo il messaggio.
+        title: '{0} ha rifiutato il tuo accesso'
     errorDetails: Dettagli
     errorGenericProvider: Il servizio AI
     errorToastTitle: Hermes non è riuscito a completare la risposta
@@ -4471,6 +5071,24 @@ assistant:
     goForward: Vai avanti
     sendEdited: Invia messaggio modificato
     attachingFile: Allegamento…
+    errorAuthKinds:
+      api_key:
+        body: La chiave salvata per {0} non è valida o è stata revocata. Aggiornala, poi riprova.
+        title: '{0} ha rifiutato la tua API key'
+      oauth:
+        title: Il tuo accesso a {0} è scaduto
+    errorLimitResets: Il limite si azzera alle {0}
+    errorOauthExpired: Il tuo accesso a {0} è scaduto o è stato revocato. Accedi di nuovo per continuare a chattare.
+    errorRetryAtReset: Riprova quando il limite si azzera ({0})
+    errorRetryScheduled: Riprovo alle {0} — tra {1}
+    errorSignInAgain: Accedi di nuovo a {0}
+    filesChanged: '{0} file modificati'
+    loadingLocalModel: Caricamento di {0} in memoria
+    resumeWhenBackgroundDone: Riprenderà quando i task in background finiranno
+    thoughtFor: Riflessione per {0}
+    today: Oggi, {0}
+    turnDuration: Questo turno ha richiesto {0}
+    yesterday: Ieri, {0}
   approval:
     gatewayDisconnected: Hermes è offline in questo momento. Il comando è ancora in attesa della tua risposta (fino al timeout di approvazione). Riconnetti, poi invialo di nuovo.
     sendFailed: Impossibile inviare la tua risposta
@@ -4487,6 +5105,7 @@ assistant:
     reject: Rifiuta
     alwaysTitle: Consentire sempre questo comando?
     alwaysAllow: Consenti sempre
+    alwaysDescription: Questo aggiunge il pattern “{0}” alla tua allowlist permanente (~/.hermes/config.yaml). Hermes non chiederà più per comandi come questo — in questa sessione o in quelle future.
   clarify:
     notReady: La richiesta di chiarimento non è ancora pronta
     gatewayDisconnected: Hermes è offline in questo momento. Riconnetti, poi invialo di nuovo.
@@ -4502,6 +5121,7 @@ assistant:
     multiSelectHint: Seleziona tutto ciò che si applica
     oneQuestion: 1 domanda
     notDelivered: Questa domanda non ha raggiunto l'app, quindi non può essere risposta qui. Premi Ferma per terminare il turno, poi rispondi in chat.
+    questionProgress: '{0} di {1} risposte'
   setupChoose:
     kinds:
       accent: Colore accento
@@ -4522,6 +5142,8 @@ assistant:
     retry: Riprova
     open: Apri
     openFailed: Impossibile aprire la chat
+    inProfile: In {0}
+    starting: Avvio “{0}”…
   catalogInstall:
     preparing: Preparazione dell'installazione…
     install: Installa
@@ -4555,6 +5177,12 @@ assistant:
       loading_tools: Caricamento dei suoi strumenti…
     notEnabled: Installato ma non attivato
     alreadyInstalled: Già installato; lasciato com'è
+    envVar: variabile d'ambiente {0}
+    missingEnv: Imposta {0} per completare la configurazione
+    requiresHermes: Hermes {0}
+    serverNotConnected: 'Server MCP {0} non connesso{1 ? `: ${1}` : ""}'
+    skill: skill {0}
+    targetProfile: Installa nel tuo profilo {0}
   mcpSetup:
     installTitle: Aggiungi server MCP
     enableTitle: Abilita server MCP
@@ -4566,6 +5194,11 @@ assistant:
     sendFailed: Impossibile inviare la risposta di configurazione MCP
     reloadFailed: Server salvato, ma il ricaricamento degli strumenti MCP non è riuscito — si caricano nella prossima sessione
     gatewayDisconnected: Hermes è offline in questo momento. Riconnetti, poi invialo di nuovo.
+    authorized: Autorizzato {0}
+    enabled: Abilitato {0}
+    failed: Configurazione non riuscita per {0}
+    installed: Installato {0}
+    toolCount: '{0} tool'
   tool:
     copyCode: Copia codice
     renderingImage: Rendering immagine
@@ -4716,6 +5349,16 @@ assistant:
         done: File modificato
         pending: Modifica file
         pendingAction: Modifica
+    failedCalls: '{0} chiamate tool fallite'
+    failedMany: '{0} passaggi falliti'
+    recoveredMany: Recuperato dopo {0} passaggi falliti
+    titleTemplates:
+      actionCommand: '{0} {1}'
+      actionQuoted: '{0} “{1}”'
+      actionTarget: '{0} {1}'
+      prefixedDone: '{0} {1}'
+      runningPrefixedTool: Esecuzione di {0} {1}
+      runningTool: Esecuzione di {0}
 prompts:
   gatewayDisconnected: Hermes è attualmente offline. Riconnetti e invia di nuovo.
   reconnect: Riconnetti
@@ -4745,6 +5388,12 @@ prompts:
   vaultCodeFootnote: "Suggerimento: salva la chiave dell'autenticatore con questo accesso in Impostazioni → Password e accessi e Hermes inserirà i codici per te."
   vaultCodeSkip: Salta
   vaultCodeConfirm: Inserisci codice
+  vaultCodeDesc: '{0} sta richiedendo un codice monouso (messaggio di testo, email o app di autenticazione). Inseriscilo qui e Hermes lo digiterà nella pagina; il modello non lo vedrà mai.'
+  vaultCodeTitle: Codice di verifica per {0}
+  vaultSaveDesc: Hermes ha raggiunto una pagina di accesso su {0} e non ha credenziali per essa. Inseriscile una volta qui; verranno crittografate su questo computer e inserite nella pagina senza che il modello veda mai la password.
+  vaultSaveTitle: Salvare il login di {0}?
+  vaultUnlockDesc: L'agent vuole accedere a un sito con un login salvato in {0}. Inserisci la password master per sbloccarla per questa sessione — va direttamente a {0} su questo computer e non viene mai memorizzata o mostrata all'agent.
+  vaultUnlockTitle: Sblocca {0}
 desktop:
   audioReadFailed: Impossibile leggere l'audio registrato
   sessionUnavailable: Sessione non disponibile
@@ -4823,6 +5472,18 @@ desktop:
     pickPlatform: Scegli una destinazione
     timedOut: Hermes non è riuscito a raggiungere la tua connessione di messaggistica. Avviala da Impostazioni → Messaggistica, quindi riprova il passaggio.
     startMessaging: Avvia messaggistica
+    failed: 'Handoff non riuscito: {0}'
+    success: Handoff completato su {0}. Riprendi qui in qualsiasi momento.
+    systemNote: ↻ Handoff completato su {0} — riprendi qui in qualsiasi momento.
+  branchTitle: 'Bozza: Branch #{0}'
+  hydrationSyncing: Sincronizzazione di {0}…
+  modelSwitchConfirmTitle: Passare a {0}?
+  newChatsProfile: Le nuove chat useranno il profilo {0}.
+  noProfileNamed: 'Nessun profilo con nome "{0}". Disponibili: {1}'
+  profileStatus: 'Profilo: {0}. Usa /profile <name> o il selettore "Nuova sessione" per avviare una chat in un altro profilo.'
+  skillCommandsAvailable: '{0} comandi skill disponibili.'
+  warningLine: 'avviso: {0}'
+  yoloSystem: YOLO {0} per questa sessione
 tips:
   close: Non mostrare più questo suggerimento
   items:
@@ -4881,3 +5542,6 @@ ui:
   sidebar:
     title: Barra laterale
     description: Mostra la barra laterale mobile.
+    toggle: Mostra/nascondi barra laterale
+remoteDisplayBanner:
+  message: Rendering software attivo — rilevato display remoto ({0}). L'accelerazione GPU è disabilitata per prevenire sfarfallii.

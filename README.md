@@ -7,7 +7,7 @@ manifest-only Hermes language pack.
 
 - `locales/it.yaml` — 3437 keys, the core (Python-side) catalog.
 - `locales/it.tui.yaml` — 1259 keys, the `hermes --tui` catalog.
-- `locales/it.desktop.yaml` — 4378 keys, the complete desktop catalog
+- `locales/it.desktop.yaml` — 5030 keys, the desktop catalog
   (`apps/desktop/src/i18n/en.ts` as of the pinned build).
 
 The core and TUI catalogs mirror the in-tree `it.yaml` / `it.tui.yaml` so
