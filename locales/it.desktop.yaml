@@ -90,6 +90,16 @@ connectors:
   required: Obbligatorio
   connectErrorFor: Impossibile avviare l'autorizzazione per {0}.
   setup: Configura {0}
+  directory:
+    allApps: Tutte le app
+    finishInBrowser: Completa nel browser
+    receiptConnected: 'Connesso: {0}'
+    receiptNone: Nessuna nuova app connessa
+    receiptTimedOut: Chiuso dopo 5 minuti
+    signInFailed: Connessione non riuscita. Clicca per riprovare
+    suggested: Suggerite
+  namedAccount: Hermes ha dato a questo account {0} il nome {1}.
+  renameAccount: Rinomina
 connectorsPage:
   title: Connettori
   filterCategory: Categoria
@@ -319,6 +329,29 @@ connectorsPage:
       label: Esterno
       long: Raggiunge qualcosa al di fuori di questa app.
   searchPlaceholder: Cerca tra {0} app
+  accounts:
+    add: Connetti
+    addAnother: Aggiungi un altro account
+    aliasHint: Lettere minuscole, cifre e trattini, fino a 32. Per esempio lavoro o casa.
+    aliasInvalid: Usa lettere minuscole, cifre e trattini, iniziando con una lettera o una cifra.
+    aliasLabel: Nome dell’account
+    aliasTaken: Questo nome è già in uso.
+    count: '{0} account'
+    heading: Account
+    remove: Rimuovi
+    removeBody: Hermes smette di usare questo account. Gli altri account restano connessi.
+    removeTitle: Rimuovere l’account {1} di {0}?
+    rename: Rinomina
+    renameGone: Questo account non esiste più. È stato rimosso o sostituito da una riconnessione.
+    renameLabel: Nuovo nome per {0}
+    retiredCount: '{0} ritirati'
+    status:
+      expired: Accesso scaduto
+      failed: Impossibile connettersi
+      inactive: Inattivo
+      pending: In attesa dell’accesso
+      retired: Sostituito da una riconnessione
+      revoked: Accesso revocato
 sessionImport:
   title: Continua da un'altra app
   subtitle: Porta una conversazione in Hermes e riprendi da dove avevi lasciato.
@@ -890,20 +923,16 @@ settings:
       agentLabel: Plugin agent
       desktopLabel: UI desktop
       profileLabel: Installa per profilo
-      reviewedHeading: Voce del catalogo revisionata
-      reviewedIntro: Questa voce è stata revisionata da un umano al commit fissato. Puoi comunque ispezionare il codice esatto qui sotto.
       nextChat: più strumenti disponibili nella tua prossima chat
       missingEnvAction: Configuralo
       desktopTarget: Viene installato nella cartella locale desktop-plugins di questa app
       desktopTargetFromPackage: Caricato in questa app dal pacchetto sopra — identico per ogni profilo
       desktopOnlyNote: I pacchetti solo desktop non installano un plugin agent backend.
       insecureWarning: Questo URL utilizza uno schema non sicuro o locale. Per installazioni in produzione, preferisci https:// o git@.
-      securityHeading: Prima di installare
       securityIntro: Installa solo da fonti di cui ti fidi — esamina il repository qui sotto se vuoi vedere cosa verrà aggiunto.
       sourceHeading: Codice sorgente
       viewRepository: Visualizza repository
       viewPluginFiles: Visualizza file del plugin
-      gitCloneLabel: URL clonazione Git
       enableAgent: Abilita plugin agent dopo l'installazione
       forceReinstall: Forza reinstallazione (sostituisci se già installato)
       pinToCommit: Fissa al commit (facoltativo)
@@ -923,12 +952,21 @@ settings:
       agentTargetLocal: Installa nel backend {0} ({1})
       agentTargetRemote: Installa nel backend {0} connesso
       alreadyInstalled: '{0} è già installato.'
-      catalogPinned: Voce catalogo Hermes "{0}" — il componente agent viene installato alla pin revisionata {1}, non alla punta del branch.
       desktopSuccess: Plugin desktop {0} installato
       missingEnv: '{0} è installato ma ha bisogno di una chiave per funzionare: {1}. Aggiungila ora, altrimenti i tool del plugin falliranno.'
       serverNotConnected: 'Il server MCP {0} non è connesso: {1}'
       skillsReady: '{0} skill pronte'
       toolsConnected: '{0} tool connessi'
+      advanced: Avanzate
+      installsAndEnables: Si installa per {0} e si attiva subito.
+      installsOnly: Si installa per {0}.
+      latestCommit: Ultimo commit
+      nothingToInstall: Questo pacchetto non ha niente da installare qui.
+      reviewedByNous: Verificato da Nous.
+      reviewedPin: Pin verificato {0}
+      unverified: Non verificato
+      verified: Verificato
+      versionLabel: Versione
   vault:
     title: Password e accessi
     blurb: Di' "accedi a GitHub" e l'agent accede per te. La prima volta che incontra una pagina di accesso ti chiederà le credenziali lì stesso; dopo funzionerà da solo. Le password sono crittografate su questo computer e inserite direttamente nella pagina — il modello non le vede mai.
@@ -1504,6 +1542,22 @@ settings:
     driverHealth: Stato driver
   about:
     updates: Aggiornamenti
+    channel:
+      branch: 'Branch: {0}'
+      change: Cambia
+      description: Le installazioni stabili ricevono solo release pubblicate. Con l’opzione «ogni commit» segui il branch main man mano che le modifiche arrivano.
+      detailsLabel: Canale
+      failed: Impossibile cambiare il canale di aggiornamento
+      latestRelease: Sei sull’ultima release stabile ({0}).
+      main: Ogni commit
+      rollbackAction: Torna a {0}
+      rollbackBody: Questa build è più recente della release stabile {0}. Installarla riporta Hermes a quella release.
+      rollbackTitle: Torna alla release stabile {0}
+      stable: Release stabili
+      stableConfirm: Passa alla stabile
+      stableConfirmBody: 'Hermes passerà all’ultima release pubblicata, che può essere più vecchia del codice che usi ora. I dati scritti da codice più recente potrebbero non essere leggibili correttamente: fai prima un backup.'
+      stableConfirmTitle: Passare alle release stabili?
+      title: Canale di aggiornamento
   config:
     minimizeToTrayTitle: Minimizza nella tray
     minimizeToTrayDesc: Minimizza le finestre o chiudi la finestra principale per nasconderle nella tray di sistema (barra menu su macOS) e mantenere Hermes in esecuzione. Usa Esci da Hermes dal menu tray o Cmd+Q per uscire. Disattivato di default; si applica solo a questo dispositivo.
@@ -1533,11 +1587,6 @@ settings:
     disableF12Desc: Blocca F12 dall'aprire gli Strumenti per sviluppatori. Ctrl+Shift+I (o Cmd+Opt+I su Mac) funziona ancora.
     alwaysExternalLinksTitle: Apri sempre i link nel browser esterno
     alwaysExternalLinksDesc: Apri ogni link cliccato nel tuo browser di sistema invece del browser in-app. "Apri nel browser in-app" nel menu tasto destro funziona ancora.
-    developerTitle: Sviluppatore
-    resetOnboardingTitle: Reimposta onboarding
-    resetOnboardingDesc: Elimina le chat di configurazione, ricostruisci il profilo di configurazione ed esegui di nuovo la configurazione iniziale. I tuoi profili, chat e plugin restano.
-    resetOnboardingAction: Reimposta
-    resetOnboardingFailed: Impossibile reimpostare l'onboarding
     attachmentSizeTitle: Dimensione massima anteprima / caricamento immagine
     attachmentSizeDesc: Quanto grande un file locale Desktop caricherà per anteprime e allegati immagine, in MB. Il default è 16. L'allegato remoto non immagine usa un limite separato di 256 MB. Impostare questo valore molto alto carica l'intero file in memoria e può bloccare o far crashare l'app.
     attachmentSizeUnit: MB
@@ -1966,7 +2015,6 @@ settings:
       product-default: Il modello predefinito per questo computer, scelto dal produttore.
       best-quality-resident: Il modello di qualità più alta che viene eseguito interamente sulla GPU a piena velocità. Le scelte bilanciano la qualità rispetto alla velocità prevista su questo hardware.
       speed-gated-quality: 'Un modello di qualità superiore si adatta a questo computer ma risponderebbe troppo lentamente a causa della larghezza di banda della memoria: questo è il miglior modello che rimane veloce.'
-      fastest-resident: Nessun modello raggiunge la piena velocità su questo hardware; questo è il più vicino mentre viene eseguito interamente nella memoria GPU.
     noRecommendationTitle: Nessuna raccomandazione automatica per questo computer
     noRecommendationDetail: La configurazione automatica richiede un modello curato che si adatti interamente alla memoria GPU o unificata. Puoi comunque scegliere un modello qui sotto o sfogliare altri modelli.
     noRecommendationAction: Sfoglia modelli
@@ -3640,14 +3688,12 @@ sidebar:
     removeWorktreeDirty: Questo worktree ha modifiche non commitizzate. Forza la rimozione (scarta quelle modifiche) o nascondi solo la corsia e tienilo su disco.
     forceRemove: Rimuovi forzatamente
     back: Tutti i progetti
-    branchOff:
-      after: ''
-      before: 'crea branch da '
     enter: Apri {0}
     movedTo: Spostato in {0}
     reorder: Riordina {0}
     showAllCount: Mostra tutte le {0} sessioni
     toggle: Mostra sessioni di {0}
+    branchOff: '[object Object]'
   loading: Caricamento…
   loadMore: Carica altro
   row:
@@ -3847,10 +3893,6 @@ composer:
   editingQueuedInComposer: Modifica turno in coda nel compositore
   restoredDraftNotice: Messaggio non inviato ripristinato
   restoredDraftUndo: Annulla
-  localSetup:
-    title: Potrebbe essere eseguito sul tuo computer
-    action: Mostrami
-    text: '{0} è adatto a questo computer. Gratuito, e le chat restano sul tuo computer.'
   queueEdit: Modifica
   queueExpand: Espandi
   queueCollapse: Comprimi
@@ -4237,15 +4279,6 @@ updates:
   releaseAvailable: La versione {0} è disponibile.
   updateReady: Un nuovo aggiornamento è pronto ({0} modifiche incluse).
   version: Versione {0}
-handoffTour:
-  profileTitle: Il tuo primo task viene eseguito sul profilo predefinito
-  profileText: Questa barra cambia profilo. Quello acceso ora è predefinito, dove vive la sessione del task. L'altro è il profilo di configurazione, dove vive la chat di benvenuto.
-  sessionsTitle: Ogni profilo mantiene le proprie sessioni
-  sessionsText: Questo elenco appartiene al profilo predefinito. Nuova sessione ne avvia una sul profilo selezionato. Cambia profilo sulla barra e l'elenco cambia di conseguenza.
-  stayTitle: Hermes è a un clic di distanza
-  stayText: Passa al profilo di configurazione e apri Benvenuto in Hermes quando vuoi una mano. Resta lì.
-  localTitle: Questa macchina può eseguire modelli localmente
-  localText: '{0} è compatibile con il tuo hardware. Funziona gratuitamente e le chat non lasciano mai il tuo computer. Selezionalo qui, nel menu dei modelli, quando vuoi.'
 install:
   stageStates:
     pending: In attesa
@@ -5122,28 +5155,6 @@ assistant:
     oneQuestion: 1 domanda
     notDelivered: Questa domanda non ha raggiunto l'app, quindi non può essere risposta qui. Premi Ferma per terminare il turno, poi rispondi in chat.
     questionProgress: '{0} di {1} risposte'
-  setupChoose:
-    kinds:
-      accent: Colore accento
-      connectors: App
-      layout: Layout
-      plugins: Plugin
-      theme: Aspetto
-    loading: Caricamento opzioni…
-    unavailable: Questo elenco non è disponibile in questo momento. Rispondi in chat invece.
-    findApp: Trova un'app
-    customColor: Colore personalizzato
-    plugin: Plugin
-    startsLater: Imposteremo questi quando inizierai.
-  startChat:
-    startingUntitled: Avvio di una chat…
-    untitled: Nuova chat
-    notStarted: Impossibile avviare quella chat.
-    retry: Riprova
-    open: Apri
-    openFailed: Impossibile aprire la chat
-    inProfile: In {0}
-    starting: Avvio “{0}”…
   catalogInstall:
     preparing: Preparazione dell'installazione…
     install: Installa
@@ -5317,14 +5328,6 @@ assistant:
         done: Cronologia sessione cercata
         pending: Ricerca cronologia sessione
         pendingAction: Ricerca
-      setup_choose:
-        done: Domanda di configurazione posta
-        pending: Domanda di configurazione in corso
-        pendingAction: Domanda
-      start_chat:
-        done: Chat avviata
-        pending: Avvio chat
-        pendingAction: Avvio
       terminal:
         done: Comando eseguito
         pending: Esecuzione comando
@@ -5359,6 +5362,17 @@ assistant:
       prefixedDone: '{0} {1}'
       runningPrefixedTool: Esecuzione di {0} {1}
       runningTool: Esecuzione di {0}
+  themePicker:
+    accent: Colore d’accento
+    basic: Base
+    basicDetail: Per chiacchierare con Hermes.
+    customColor: Colore personalizzato
+    elite: Elite
+    eliteDetail: 'Per sviluppatori: terminale, file, diff.'
+    layout: Layout
+    mode: Aspetto
+    noPick: Nessuna scelta
+    themeAccent: Predefinito del tema
 prompts:
   gatewayDisconnected: Hermes è attualmente offline. Riconnetti e invia di nuovo.
   reconnect: Riconnetti
@@ -5545,3 +5559,42 @@ ui:
     toggle: Mostra/nascondi barra laterale
 remoteDisplayBanner:
   message: Rendering software attivo — rilevato display remoto ({0}). L'accelerazione GPU è disabilitata per prevenire sfarfallii.
+firstRun:
+  answerRefused: Risposta non accettata
+  beats:
+    build: Prima attività
+    connectors: App
+    layout: Layout
+    name: Nome
+    plugins: Plugin
+    theme: Colore d’accento
+    tour: Tour
+  install: Installa
+  installed: Installato
+  intro:
+    greeting: Ciao, sono Hermes.
+    plan: Prepariamo tutto per te. Poi combiniamo qualcosa di bello.
+  loading: Caricamento…
+  localModel:
+    notNow: Non ora
+    setUp: Configuralo
+    text: '{0} ({1}) è adatto al tuo hardware. È gratuito e le chat restano su questo computer.'
+    title: Questo computer può eseguire un modello in locale
+  namePlaceholder: Il tuo nome
+  noAnswer: Senza risposta
+  noPlugins: Al momento non ci sono plugin da mostrare.
+  noneChosen: Nessuno
+  rerun:
+    action: Esegui di nuovo
+    description: Apre una nuova chat di configurazione che ripercorre i passaggi del primo avvio con il modello attuale.
+    failed: Impossibile avviare la configurazione
+    title: Riesegui la configurazione iniziale
+  skip: Salta la configurazione
+  skipFailed: Impossibile saltare la configurazione
+  skipTip: Chiude la configurazione guidata e apre una nuova chat.
+  skippedAll: Configurazione saltata
+  tours:
+    full: Mostrami tutto
+    quick: Tour rapido
+    skip: Salta, costruiamo qualcosa
+  useName: Usa “{0}”
