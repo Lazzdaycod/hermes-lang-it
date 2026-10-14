@@ -5573,7 +5573,7 @@ firstRun:
   installed: Installato
   intro:
     greeting: Ciao, sono Hermes.
-    plan: Prepariamo tutto per te. Poi combiniamo qualcosa di bello.
+    plan: Prepariamo tutto per te. Poi facciamo qualcosa di bello.
   loading: Caricamento…
   localModel:
     notNow: Non ora
