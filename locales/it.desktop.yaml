@@ -3693,7 +3693,9 @@ sidebar:
     reorder: Riordina {0}
     showAllCount: Mostra tutte le {0} sessioni
     toggle: Mostra sessioni di {0}
-    branchOff: '[object Object]'
+    branchOff:
+      after: ''
+      before: 'crea branch da '
   loading: Caricamento…
   loadMore: Carica altro
   row:
