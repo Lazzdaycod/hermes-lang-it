@@ -156,35 +156,56 @@ async function translate(text, signal) {
 }
 
 // Fallback: il modello locale di Hermes (llama.cpp) traduce senza limiti di quota.
-// La chiave API la legge il backend Hermes (runtimes/llamacpp/.api_key) e la espone
-// in /api-key; il plugin la richiede una sola volta e la riusa.
-let _localKey = null
-async function localApiKey(signal) {
-  if (_localKey) return _localKey
-  // 1) route del backend del plugin (montata solo al riavvio del desktop)
+// L'endpoint e la chiave li legge il backend Hermes (base_url del config +
+// runtimes/llamacpp/.api_key) e li espone in /api-key: la porta del server
+// locale cambia a ogni avvio, quindi non puo' stare qui.
+let _local = null
+async function localEndpoint(signal) {
+  if (_local) return _local
+  const response = await fetch('/api/plugins/catalogo-it/api-key', {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
+    credentials: 'omit'
+  })
+  if (!response.ok) throw new Error('no local backend')
+  const data = await response.json()
+  if (!data?.key || !data?.base_url) throw new Error('no local endpoint')
+  _local = {
+    key: data.key,
+    baseUrl: String(data.base_url).replace(/\/+$/, ''),
+    model: data.model || ''
+  }
+  return _local
+}
+
+// Il modello configurato puo' non esistere sul server: in quel caso si usa il
+// primo che il server dichiara in /v1/models.
+let _localModel = ''
+async function localModelName(baseUrl, signal) {
+  if (_localModel) return _localModel
   try {
-    const response = await fetch('/api/plugins/catalogo-it/api-key', {
+    const response = await fetch(`${baseUrl}/models`, {
       signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
       credentials: 'omit'
     })
     if (response.ok) {
       const data = await response.json()
-      if (data?.key) { _localKey = data.key; return _localKey }
+      const first = data?.data?.[0]?.id
+      if (first) _localModel = String(first)
     }
-  } catch { /* prova il passo 2 */ }
-  // 2) se il backend non risponde, il fallback locale non e' disponibile
-  throw new Error('no local backend')
+  } catch { /* il modello resta quello del config */ }
+  return _localModel
 }
 
 async function translateLocal(text, signal) {
-  const key = await localApiKey(signal)
-  if (!key) throw new Error('no local key')
-  const response = await fetch('http://127.0.0.1:18434/v1/chat/completions', {
+  const info = await localEndpoint(signal)
+  const model = (await localModelName(info.baseUrl, signal)) || info.model
+  if (!model) throw new Error('no local model')
+  const response = await fetch(`${info.baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${info.key}` },
     signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
     body: JSON.stringify({
-      model: 'Qwen3.8-27B-UD-Q4_K_M',
+      model,
       messages: [
         { role: 'system', content: 'Traduci in italiano. Rispondi SOLO con la traduzione, senza spiegazioni.' },
         { role: 'user', content: text }
