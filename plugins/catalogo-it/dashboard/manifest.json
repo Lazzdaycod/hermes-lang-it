@@ -1,0 +1,8 @@
+{
+  "name": "catalogo-it",
+  "label": "Catalogo Plugin IT",
+  "description": "Catalogo ufficiale dei plugin Hermes in italiano, con descrizioni tradotte al volo",
+  "icon": "Package",
+  "version": "1.0.0",
+  "api": "plugin_api.py"
+}

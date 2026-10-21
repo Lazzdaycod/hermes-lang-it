@@ -1,0 +1,11 @@
+name: token-rate
+version: "2.0.0"
+description: "Token/sec in tempo reale del server llama.cpp locale, attivabile da Hermes Desktop"
+author: lazzo
+kind: standalone
+requires_hermes: ">=0.21.6"
+requires_env: []
+provides_tools:
+  - get_token_rate
+provides_hooks: []
+api: dashboard/plugin_api.py

@@ -1,7 +1,8 @@
-# hermes-lang-it — Italian language pack (Desktop)
+# hermes-lang-it — Italian language pack + Italian plugins
 
 Full Italian translation of the **Hermes Desktop** UI catalog, packaged as a
-manifest-only Hermes language pack.
+manifest-only Hermes language pack — plus two ready-to-install Italian
+Hermes plugins (`token-rate`, `catalogo-it`) in [`plugins/`](plugins/).
 
 ## What it ships
 
@@ -55,6 +56,44 @@ Built and checked against the English desktop catalog:
   always the user's choice via config or the language switcher.
 - The catalog contains static UI strings only — agent responses, tool output
   and logs are not affected (as with any Hermes language pack).
+
+## Bundled plugins
+
+Two complete Hermes plugins ship in this repository, each in its own
+subdirectory. Install one with the `owner/repo/subdir` form:
+
+```sh
+hermes plugins install Lazzdaycod/hermes-lang-it/plugins/token-rate --enable
+hermes plugins install Lazzdaycod/hermes-lang-it/plugins/catalogo-it --enable
+```
+
+### `token-rate` — live tokens/sec for a local llama.cpp model
+
+Status-bar chip showing the real output/input tokens-per-second of the local
+llama.cpp server. The rate is read by Hermes itself from
+`$HERMES_HOME/logs/llama-server.log` — no external process, no extra port, no
+watchdog, no API key.
+
+The counter starts **off**: click the chip in the status bar, or run
+**Token Rate: attiva/ferma il contatore tok/s** from the command palette
+(Ctrl/Cmd+K). It also registers the `get_token_rate` agent tool, so the model
+can read its own speed.
+
+### `catalogo-it` — the Hermes plugin catalog, in Italian
+
+Native page (sidebar → *Catalogo Plugin*, route `/catalogo`, plus a
+command-palette entry) listing the official Hermes plugin catalog with an
+Italian interface and on-the-fly Italian descriptions
+(Google Translate → MyMemory → local llama.cpp fallback).
+
+### Notes for both
+
+- Unified packages: a FastAPI backend (`dashboard/plugin_api.py`, mounted at
+  `/api/plugins/<id>/`) plus a desktop half (`desktop/plugin.js`).
+- The desktop half is opt-in — after installing, enable the plugin in
+  **Capabilities → Plugins**.
+- **Restart Hermes Desktop once** after installing so the backend routes get
+  mounted (they are mounted at app start).
 
 ## License
 

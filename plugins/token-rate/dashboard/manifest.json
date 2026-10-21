@@ -1,0 +1,8 @@
+{
+  "name": "token-rate",
+  "label": "Token Rate Monitor",
+  "description": "Token/sec in tempo reale del server llama.cpp locale, attivabile da Hermes Desktop",
+  "icon": "Package",
+  "version": "2.0.0",
+  "api": "plugin_api.py"
+}

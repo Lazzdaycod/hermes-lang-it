@@ -1,0 +1,10 @@
+name: catalogo-it
+version: "1.0.0"
+description: "Catalogo plugin Hermes in italiano, con descrizioni tradotte al volo"
+author: lazzo
+kind: standalone
+requires_hermes: ">=0.21.6"
+requires_env: []
+provides_tools: []
+provides_hooks: []
+api: dashboard/plugin_api.py
