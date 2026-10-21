@@ -1,23 +1,56 @@
 /**
- * Token Rate Monitor — chip nella status bar di Hermes Desktop.
+ * Token Rate Monitor — chip in the Hermes Desktop status bar.
  *
- * Mostra i token/sec reali del server llama.cpp locale, letti da Hermes
- * stesso (router FastAPI montato su /api/plugins/token-rate/). Nessun
- * processo esterno, nessuna porta, nessun watchdog: il backend gira dentro
- * l'app.
+ * Shows the real tokens/sec of the local llama.cpp server. Hermes itself reads
+ * `$HERMES_HOME/logs/llama-server.log` and serves it at
+ * `/api/plugins/token-rate/`; this chip polls that route once a second. No
+ * external process, no extra port, no API key, no network calls.
  *
- * Il contatore parte SPENTO: si attiva con un click sul chip oppure con il
- * comando "Token Rate: attiva/ferma il contatore" nella palette (Ctrl+K).
+ * The counter starts OFF: click the chip, or run the palette entry
+ * "Token Rate: start/stop the tok/s counter" (Ctrl/Cmd+K), to start it.
  *
- * Plain ESM, non compilato — solo jsx() calls. Import consentiti:
+ * Plain ESM, uncompiled — jsx() calls only. Allowed imports:
  * @hermes/plugin-sdk, react, react/jsx-runtime.
  */
 
-import { cn, host, PALETTE_AREA, Tip, useQuery, useQueryClient, useValue } from '@hermes/plugin-sdk'
+import { cn, host, PALETTE_AREA, Tip, usePluginI18n, useQuery, useQueryClient, useValue } from '@hermes/plugin-sdk'
 import { jsx, jsxs } from 'react/jsx-runtime'
 
 const ID = 'token-rate'
 const POLL_MS = 1000
+
+const LOCALES = {
+  en: {
+    title: 'Token Rate Monitor',
+    outputLine: (o, i) => `Output: ${o} t/s · Input: ${i} t/s`,
+    offLine: 'Monitor off',
+    clickStop: 'Click to stop',
+    clickStart: 'Click to start',
+    off: 'off',
+    startTip: 'Click to start the tok/s counter',
+    stopTip: 'Click to stop the tok/s counter',
+    started: 'Token rate counter started — it updates while the model responds',
+    stopped: 'Token rate counter stopped',
+    unreachable: (err) => `Token Rate: backend unreachable (${err}). Restart Hermes Desktop and try again.`,
+    command: 'Token Rate: start/stop the tok/s counter',
+    description: 'Live tokens/sec of the local llama.cpp server, started with one click.'
+  },
+  it: {
+    title: 'Token Rate Monitor',
+    outputLine: (o, i) => `Output: ${o} t/s · Input: ${i} t/s`,
+    offLine: 'Monitor spento',
+    clickStop: 'Clicca per fermare',
+    clickStart: 'Clicca per attivare',
+    off: 'spento',
+    startTip: 'Clicca per attivare il contatore tok/s',
+    stopTip: 'Clicca per fermare il contatore tok/s',
+    started: 'Contatore tok/s attivato — si aggiorna mentre il modello risponde',
+    stopped: 'Contatore tok/s fermato',
+    unreachable: (err) => `Token Rate: backend non raggiungibile (${err}). Riavvia Hermes Desktop e riprova.`,
+    command: 'Token Rate: attiva/ferma il contatore tok/s',
+    description: 'Token/sec in tempo reale del server llama.cpp locale, attivabile con un click.'
+  }
+}
 
 /** Accorcia il nome del modello per lo spazio dello status bar. */
 function shortModel(name) {
@@ -41,6 +74,7 @@ function modelLabel(model) {
 }
 
 function TokenRateChip({ ctx }) {
+  const t = usePluginI18n(ID)
   const busy = useValue(host.state.busy)
   const model = useValue(host.state.model)
   const queryClient = useQueryClient()
@@ -69,23 +103,15 @@ function TokenRateChip({ ctx }) {
     try {
       await ctx.rest(enabled ? '/stop' : '/start', { method: 'POST' })
     } catch (err) {
-      host.notify({
-        kind: 'error',
-        message: `Token Rate: backend non raggiungibile (${err?.message || 'errore'}). Riavvia Hermes Desktop e riprova.`
-      })
+      host.notify({ kind: 'error', message: t('unreachable', err?.message || 'error') })
       return
     }
     await queryClient.refetchQueries({ queryKey: [ID, 'metrics'] })
-    host.notify({
-      kind: enabled ? 'info' : 'success',
-      message: enabled
-        ? 'Contatore tok/s fermato'
-        : 'Contatore tok/s attivato — si aggiorna mentre il modello risponde'
-    })
+    host.notify({ kind: enabled ? 'info' : 'success', message: t(enabled ? 'stopped' : 'started') })
   }
 
   const rateLabel = !enabled
-    ? 'off'
+    ? t('off')
     : (tps != null || inputTps != null)
       ? `↑${fmtRate(tps)}↓${fmtRate(inputTps)}`
       : '↑—↓—'
@@ -94,25 +120,21 @@ function TokenRateChip({ ctx }) {
     label: jsxs('div', {
       className: 'flex flex-col gap-0.5',
       children: [
-        jsx('span', { className: 'font-medium', children: 'Token Rate Monitor' }),
+        jsx('span', { className: 'font-medium', children: t('title') }),
         jsx('span', {
           className: 'text-(--ui-text-tertiary)',
-          children: enabled
-            ? `Output: ${fmtRate(tps)} t/s · Input: ${fmtRate(inputTps)} t/s`
-            : 'Monitor spento'
+          children: enabled ? t('outputLine', fmtRate(tps), fmtRate(inputTps)) : t('offLine')
         }),
         jsx('span', {
           className: 'text-(--ui-text-quaternary)',
-          children: enabled ? 'Clicca per fermare' : 'Clicca per attivare'
+          children: enabled ? t('clickStop') : t('clickStart')
         })
       ]
     }),
     children: jsx('span', {
       role: 'button',
       tabIndex: 0,
-      title: enabled
-        ? 'Clicca per fermare il contatore tok/s'
-        : 'Clicca per attivare il contatore tok/s',
+      title: enabled ? t('stopTip') : t('startTip'),
       onClick: () => { void toggle() },
       onKeyDown: (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -144,14 +166,12 @@ async function toggleFromPalette(ctx) {
     await ctx.rest(enabled ? '/stop' : '/start', { method: 'POST' })
     host.notify({
       kind: enabled ? 'info' : 'success',
-      message: enabled
-        ? 'Contatore tok/s fermato'
-        : 'Contatore tok/s attivato — si aggiorna mentre il modello risponde'
+      message: ctx.i18n.t(enabled ? 'stopped' : 'started')
     })
-  } catch {
+  } catch (err) {
     host.notify({
       kind: 'error',
-      message: 'Token Rate: backend non disponibile. Riavvia Hermes e riprova.'
+      message: ctx.i18n.t('unreachable', err?.message || 'error')
     })
   } finally {
     _paletteBusy = false
@@ -161,9 +181,11 @@ async function toggleFromPalette(ctx) {
 export default {
   id: ID,
   name: 'Token Rate Monitor',
-  description: 'Token/sec in tempo reale del server llama.cpp locale, attivabile con un click.',
+  description: LOCALES.en.description,
   defaultEnabled: true,
   register(ctx) {
+    ctx.i18n.register(LOCALES)
+
     ctx.register({
       id: 'chip',
       area: 'statusBar.right',
@@ -176,8 +198,8 @@ export default {
       area: PALETTE_AREA,
       data: {
         id: `${ID}.toggle`,
-        label: 'Token Rate: attiva/ferma il contatore tok/s',
-        keywords: ['token', 'rate', 'tok/s', 'tokens', 'contatore', 'velocita', 'monitor', 'llama'],
+        label: ctx.i18n.t('command'),
+        keywords: ['token', 'rate', 'tok/s', 'tokens', 'counter', 'speed', 'monitor', 'llama'],
         run: () => { void toggleFromPalette(ctx) }
       }
     })

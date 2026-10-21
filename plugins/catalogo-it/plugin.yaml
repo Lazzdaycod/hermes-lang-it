@@ -1,6 +1,6 @@
 name: catalogo-it
 version: "1.0.0"
-description: "Catalogo plugin Hermes in italiano, con descrizioni tradotte al volo"
+description: "The Hermes plugin catalog in Italian, with descriptions translated on the fly"
 author: lazzo
 kind: standalone
 requires_hermes: ">=0.21.6"
