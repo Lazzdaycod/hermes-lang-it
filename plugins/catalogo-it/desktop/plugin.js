@@ -458,7 +458,7 @@ function CatalogPage({ ctx }) {
 
 export default {
   id: ID,
-  name: 'Catalogo Plugin IT',
+  name: 'Plugin Catalog (Italian)',
   description: 'The official Hermes plugin catalog in a native page, with descriptions translated into Italian on the fly.',
   defaultEnabled: true,
   register(ctx) {
