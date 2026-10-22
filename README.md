@@ -8,7 +8,7 @@ Hermes plugins (`token-rate`, `catalogo-it`) in [`plugins/`](plugins/).
 
 - `locales/it.yaml` — 3437 keys, the core (Python-side) catalog.
 - `locales/it.tui.yaml` — 1259 keys, the `hermes --tui` catalog.
-- `locales/it.desktop.yaml` — 5030 keys, the desktop catalog
+- `locales/it.desktop.yaml` — 5081 keys, the desktop catalog
   (`apps/desktop/src/i18n/en.ts` as of the pinned build).
 
 The core and TUI catalogs mirror the in-tree `it.yaml` / `it.tui.yaml` so
@@ -42,11 +42,24 @@ gateways/TUI/desktop sessions so they pick the pack up.
 
 Built and checked against the English desktop catalog:
 
-- 100% key coverage (no missing or extra keys);
+- 100% key coverage of the translatable key set (no extra keys);
 - placeholders (`{name}`, `{{x}}`), URLs and CLI flags preserved verbatim;
 - hard-parsed UI tokens (menu brackets, `[Y/n]` prompts) kept verbatim;
-- parsed round-trip with Hermes' own `i18n_layers.parse_locale_file()` →
-  4378 dotted keys, 0 missing / 0 extra / 0 divergent.
+- parsed round-trip with Hermes' own `i18n_layers.parse_locale_file()` and
+  diffed against `locales/_keys.desktop.json`: 5081 of 5088 keys covered
+  (99.9%), 0 extra, 0 divergent.
+
+The 7 uncovered keys cannot ship in a pack at all:
+
+- `composer.newSessionPlaceholders`, `composer.followUpPlaceholders` and
+  `intro.custom` are array/object-valued in `en.ts` — the pack format holds
+  strings, and `i18n_layers.non_text_leaves()` rejects non-text leaves;
+- `sidebar.projects.branchOff` is a function value, not a template string;
+- `keepAwakeOffer.action`, `.message` and `.title` appear in
+  `locales/_keys.desktop.json` but have no English value in the pinned
+  `en.ts`, so there is no source string to translate yet.
+
+All of them fall back to English at runtime.
 
 ## Disclosure
 
@@ -72,10 +85,11 @@ hermes plugins install Lazzdaycod/hermes-lang-it/plugins/catalogo-it --enable
 Status-bar chip showing the real output/input tokens-per-second of the local
 llama.cpp server. The rate is read by Hermes itself from
 `$HERMES_HOME/logs/llama-server.log` — no external process, no extra port, no
-watchdog, no API key.
+watchdog, no API key. Full details in
+[`plugins/token-rate/README.md`](plugins/token-rate/README.md).
 
 The counter starts **off**: click the chip in the status bar, or run
-**Token Rate: attiva/ferma il contatore tok/s** from the command palette
+**Token Rate: start/stop the tok/s counter** from the command palette
 (Ctrl/Cmd+K). It also registers the `get_token_rate` agent tool, so the model
 can read its own speed.
 
@@ -84,7 +98,8 @@ can read its own speed.
 Native page (sidebar → *Catalogo Plugin*, route `/catalogo`, plus a
 command-palette entry) listing the official Hermes plugin catalog with an
 Italian interface and on-the-fly Italian descriptions
-(Google Translate → MyMemory → local llama.cpp fallback).
+(Google Translate → MyMemory → local llama.cpp fallback). Full details in
+[`plugins/catalogo-it/README.md`](plugins/catalogo-it/README.md).
 
 ### Notes for both
 
