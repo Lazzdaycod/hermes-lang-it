@@ -59,7 +59,8 @@ const LOCALES = {
     clear: 'Clear', close: 'Close', official: 'Official', community: 'Community',
     verified: 'Verified', open: 'Open catalog', refresh: 'Reload catalog', install: 'Install plugin',
     searchTitle: 'Cerca Plugin', searchSubtitle: 'Digita una parola: vedrai solo i plugin corrispondenti',
-    searchPlaceholder: 'Digita per cercare…', searchHint: 'Prova con token, memory, web…', searchIdle: 'Digita una parola per cercare'
+    searchPlaceholder: 'Digita per cercare…', searchHint: 'Prova con token, memory, web…', searchIdle: 'Digita una parola per cercare',
+    navLabel: 'Plugin Catalog', openLabel: 'Open plugin catalog', searchLabel: 'Search plugin catalog…'
   },
   it: {
     title: 'Catalogo Plugin', subtitle: 'Il catalogo ufficiale dei plugin Hermes, in italiano',
@@ -72,7 +73,8 @@ const LOCALES = {
     clear: 'Pulisci', close: 'Chiudi', official: 'Ufficiale', community: 'Comunità',
     verified: 'Verificato', open: 'Apri catalogo', refresh: 'Ricarica catalogo', install: 'Installa plugin',
     searchTitle: 'Cerca Plugin', searchSubtitle: 'Digita una parola: vedrai solo i plugin corrispondenti',
-    searchPlaceholder: 'Digita per cercare…', searchHint: 'Prova con token, memoria, web…', searchIdle: 'Digita una parola per cercare'
+    searchPlaceholder: 'Digita per cercare…', searchHint: 'Prova con token, memoria, web…', searchIdle: 'Digita una parola per cercare',
+    navLabel: 'Catalogo Plugin', openLabel: 'Apri catalogo plugin', searchLabel: 'Cerca nel catalogo plugin…'
   }
 }
 
@@ -155,79 +157,8 @@ async function translate(text, signal) {
   return myMemoryTranslate(clean, signal)
 }
 
-// Fallback: il modello locale di Hermes (llama.cpp) traduce senza limiti di quota.
-// L'endpoint e la chiave li legge il backend Hermes (base_url del config +
-// runtimes/llamacpp/.api_key) e li espone in /api-key: la porta del server
-// locale cambia a ogni avvio, quindi non puo' stare qui.
-let _local = null
-async function localEndpoint(signal) {
-  if (_local) return _local
-  const response = await fetch('/api/plugins/catalogo-it/api-key', {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
-    credentials: 'omit'
-  })
-  if (!response.ok) throw new Error('no local backend')
-  const data = await response.json()
-  if (!data?.key || !data?.base_url) throw new Error('no local endpoint')
-  _local = {
-    key: data.key,
-    baseUrl: String(data.base_url).replace(/\/+$/, ''),
-    model: data.model || ''
-  }
-  return _local
-}
-
-// Il modello configurato puo' non esistere sul server: in quel caso si usa il
-// primo che il server dichiara in /v1/models.
-let _localModel = ''
-async function localModelName(baseUrl, signal) {
-  if (_localModel) return _localModel
-  try {
-    const response = await fetch(`${baseUrl}/models`, {
-      signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
-      credentials: 'omit'
-    })
-    if (response.ok) {
-      const data = await response.json()
-      const first = data?.data?.[0]?.id
-      if (first) _localModel = String(first)
-    }
-  } catch { /* il modello resta quello del config */ }
-  return _localModel
-}
-
-async function translateLocal(text, signal) {
-  const info = await localEndpoint(signal)
-  const model = (await localModelName(info.baseUrl, signal)) || info.model
-  if (!model) throw new Error('no local model')
-  const response = await fetch(`${info.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${info.key}` },
-    signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: 'Traduci in italiano. Rispondi SOLO con la traduzione, senza spiegazioni.' },
-        { role: 'user', content: text }
-      ],
-      max_tokens: 800,
-      temperature: 0.1,
-      chat_template_kwargs: { enable_thinking: false }
-    })
-  })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  const data = await response.json()
-  const message = data?.choices?.[0]?.message
-  const out = message?.content || message?.reasoning_content
-  return typeof out === 'string' && out.trim() ? out.trim() : null
-}
-
 async function translateEntry(text, signal) {
-  try {
-    const out = await translate(text, signal)
-    if (out) return out
-  } catch { /* passa al fallback */ }
-  return translateLocal(text, signal)
+  return translate(text, signal)
 }
 
 function PluginRow({ entry, open, onOpen, t }) {
@@ -470,8 +401,8 @@ export default {
     ctx.onDispose(() => style.remove())
 
     ctx.register({ id: 'page', area: ROUTES_AREA, data: { path: '/catalogo' }, render: () => jsx(CatalogPage, { ctx }) })
-    ctx.register({ id: 'nav', area: SIDEBAR_NAV_AREA, order: 55, data: { codicon: 'extensions', label: 'Catalogo Plugin', path: '/catalogo' } })
-    ctx.register({ id: 'open', area: PALETTE_AREA, data: { id: 'catalogo.open', label: 'Apri catalogo plugin', keywords: ['catalogo', 'plugin', 'catalog'], run: () => host.navigate('/catalogo') } })
-    ctx.register({ id: 'search', area: PALETTE_AREA, data: { id: 'catalogo.search', label: 'Cerca nel catalogo plugin…', keywords: ['cerca', 'catalogo', 'plugin', 'search'], run: () => host.navigate('/catalogo?focus=1') } })
+    ctx.register({ id: 'nav', area: SIDEBAR_NAV_AREA, order: 55, data: { codicon: 'extensions', label: ctx.i18n.t('navLabel'), path: '/catalogo' } })
+    ctx.register({ id: 'open', area: PALETTE_AREA, data: { id: 'catalogo.open', label: ctx.i18n.t('openLabel'), keywords: ['catalog', 'plugin', 'catalog'], run: () => host.navigate('/catalogo') } })
+    ctx.register({ id: 'search', area: PALETTE_AREA, data: { id: 'catalogo.search', label: ctx.i18n.t('searchLabel'), keywords: ['search', 'catalog', 'plugin'], run: () => host.navigate('/catalogo?focus=1') } })
   }
 }

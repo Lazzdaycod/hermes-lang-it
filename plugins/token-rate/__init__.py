@@ -11,28 +11,32 @@ Il tool ``get_token_rate`` offre la stessa lettura all'agente.
 
 from __future__ import annotations
 
-import sys
+import json
 from pathlib import Path
 
 # Rende importabile token_rate_log.py sia quando il plugin e' importato come
 # pacchetto (loader Hermes) sia quando il router viene caricato standalone.
-_PLUGIN_DIR = Path(__file__).resolve().parent
-if str(_PLUGIN_DIR) not in sys.path:
-    sys.path.insert(0, str(_PLUGIN_DIR))
+try:
+    from .token_rate_log import read_rates  # type: ignore
+except ImportError:  # pragma: no cover - fallback per caricamento standalone
+    import sys
 
-from token_rate_log import read_rates  # noqa: E402
+    _PLUGIN_DIR = Path(__file__).resolve().parent
+    if str(_PLUGIN_DIR) not in sys.path:
+        sys.path.insert(0, str(_PLUGIN_DIR))
+    from token_rate_log import read_rates  # noqa: E402
 
 _TOOL_DESCRIPTION = (
-    "Token/sec in tempo reale (output e input) del server llama.cpp locale. "
-    "Utile per sapere quanto e' veloce il modello locale."
+    "Real-time output and input tokens-per-second of the local llama.cpp server. "
+    "Useful to know how fast the local model is."
 )
 
 
 def register(ctx) -> None:
     """Registra il tool ``get_token_rate`` (richiesto dal loader Hermes)."""
 
-    def _get_token_rate() -> dict:
-        return read_rates()
+    def _get_token_rate(args: dict, **_kw) -> str:
+        return json.dumps(read_rates())
 
     ctx.register_tool(
         name="get_token_rate",

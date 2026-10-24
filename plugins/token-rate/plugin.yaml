@@ -1,6 +1,6 @@
 name: token-rate
 version: "2.0.0"
-description: "Token/sec in tempo reale del server llama.cpp locale, attivabile da Hermes Desktop"
+description: "Real-time tokens/sec of the local llama.cpp server, toggleable from Hermes Desktop"
 author: lazzo
 kind: standalone
 requires_hermes: ">=0.21.6"
