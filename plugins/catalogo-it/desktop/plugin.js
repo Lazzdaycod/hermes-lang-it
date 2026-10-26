@@ -58,8 +58,8 @@ const LOCALES = {
     platforms: 'Platforms', noResults: 'No plugins found', categories: 'categories',
     clear: 'Clear', close: 'Close', official: 'Official', community: 'Community',
     verified: 'Verified', open: 'Open catalog', refresh: 'Reload catalog', install: 'Install plugin',
-    searchTitle: 'Cerca Plugin', searchSubtitle: 'Digita una parola: vedrai solo i plugin corrispondenti',
-    searchPlaceholder: 'Digita per cercare…', searchHint: 'Prova con token, memory, web…', searchIdle: 'Digita una parola per cercare',
+    searchTitle: 'Search Plugins', searchSubtitle: 'Type a word: you will see only matching plugins',
+    searchPlaceholder: 'Type to search…', searchHint: 'Try token, memory, web…', searchIdle: 'Type a word to search',
     navLabel: 'Plugin Catalog', openLabel: 'Open plugin catalog', searchLabel: 'Search plugin catalog…'
   },
   it: {
