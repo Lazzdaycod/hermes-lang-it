@@ -1,0 +1,8 @@
+{
+  "name": "llama-cpp",
+  "label": "llama.cpp",
+  "description": "Manage the Hermes-managed llama.cpp runtime: backend detection, local GGUF models, per-model presets, load/unload",
+  "icon": "Cpu",
+  "version": "1.0.0",
+  "api": "plugin_api.py"
+}

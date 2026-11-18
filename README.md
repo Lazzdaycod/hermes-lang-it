@@ -72,12 +72,13 @@ All of them fall back to English at runtime.
 
 ## Bundled plugins
 
-Two complete Hermes plugins ship in this repository, each in its own
+Three complete Hermes plugins ship in this repository, each in its own
 subdirectory. Install one with the `owner/repo/subdir` form:
 
 ```sh
 hermes plugins install Lazzdaycod/hermes-lang-it/plugins/token-rate --enable
 hermes plugins install Lazzdaycod/hermes-lang-it/plugins/catalogo-it --enable
+hermes plugins install Lazzdaycod/hermes-lang-it/plugins/llama-cpp --enable
 ```
 
 ### `token-rate` — live tokens/sec for a local llama.cpp model
@@ -101,7 +102,17 @@ Italian interface and on-the-fly Italian descriptions
 (Google Translate → MyMemory → local llama.cpp fallback). Full details in
 [`plugins/catalogo-it/README.md`](plugins/catalogo-it/README.md).
 
-### Notes for both
+### `llama-cpp` — GPU-aware llama.cpp server manager
+
+Desktop page + FastAPI backend for the Hermes-managed llama.cpp runtime: detects
+the GPU by model (not just vendor) and offers the matching build (Vulkan, CUDA,
+ROCm via Lemonade), lists local GGUF models, edits and applies per-model presets
+(context, `n-gpu-layers`, KV cache, flash attention, batch, sampling),
+loads/unloads the active model, and benchmarks generation/prefill tok/s with a
+leaderboard that records the preset and the llama.cpp build used for each test.
+Full details in [`plugins/llama-cpp/README.md`](plugins/llama-cpp/README.md).
+
+### Notes for the plugins
 
 - Unified packages: a FastAPI backend (`dashboard/plugin_api.py`, mounted at
   `/api/plugins/<id>/`) plus a desktop half (`desktop/plugin.js`).
