@@ -88,8 +88,8 @@ DEFAULT_OPTIONS = {
 
 def hermes_home() -> Path:
     try:
-        from hermes_cli.config import get_default_hermes_root  # type: ignore
-        p = get_default_hermes_root()
+        from hermes_constants import get_hermes_home  # type: ignore
+        p = get_hermes_home()
         if p:
             return Path(p)
     except Exception:
@@ -402,8 +402,9 @@ def active_model() -> str | None:
 
 
 def set_active_model(model_id: str) -> dict:
-    """Set model.default in config.yaml. Prefers Hermes's own save_config
-    (same path `hermes config set` uses); falls back to a targeted YAML edit."""
+    """Set model.default in config.yaml through Hermes's own save_config
+    (the same path `hermes config set` uses). This config write is disclosed
+    in the README; there is no raw-YAML rewrite fallback."""
     model_id = str(model_id).strip()
     if not model_id:
         return {"ok": False, "error": "empty model id"}
@@ -412,17 +413,7 @@ def set_active_model(model_id: str) -> dict:
         save_config({"model": {"default": model_id}}, merge_existing=True)
         return {"ok": True, "method": "save_config", "active_model": active_model()}
     except Exception as exc:
-        try:
-            import hermes_yaml  # type: ignore
-            path = config_path()
-            data = _load_yaml(path)
-            data.setdefault("model", {})["default"] = model_id
-            path.write_text(
-                hermes_yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=100),
-                encoding="utf-8")
-            return {"ok": True, "method": "yaml-fallback", "active_model": active_model()}
-        except Exception as exc2:
-            return {"ok": False, "error": f"save_config: {exc}; yaml-fallback: {exc2}"}
+        return {"ok": False, "error": f"save_config: {exc}"}
 
 
 # ---------------------------------------------------------------------------
@@ -631,19 +622,23 @@ def detect_gpu() -> dict:
     ordered = sorted(names, key=_rank)
     name = ordered[0] if ordered else None
     vendor = _gpu_vendor(name) if name else None
-    amd_gfx = None
-    if vendor == "amd":
+    compute_capability = None
+    if vendor == "nvidia":
         try:
-            from pm.packages import _amd_gfx_bucket
-            amd_gfx = _amd_gfx_bucket() or None
+            r = subprocess.run(
+                ["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader"],
+                capture_output=True, text=True, timeout=10)
+            first = (r.stdout or "").strip().splitlines()
+            if r.returncode == 0 and first:
+                compute_capability = first[0].strip() or None
         except Exception:
-            amd_gfx = None
+            compute_capability = None
     return {
         "names": names,
         "name": name,
         "vendor": vendor,
         "model": (name or "").strip() or None,
-        "amd_gfx": amd_gfx,
+        "compute_capability": compute_capability,
         "cuda": vendor == "nvidia",
     }
 
@@ -656,53 +651,39 @@ _LOCAL_HOSTS = ("127.0.0.1", "localhost", "0.0.0.0", "[::1]")
 
 
 def hermes_local_models() -> list:
-    """Local AI models used by Hermes: providers with a local base_url in
-    config.yaml, queried via their OpenAI-compatible /models endpoint.
-    Cached for 60 seconds."""
+    """Local AI endpoints Hermes is configured to use: every local base_url
+    in config.yaml (the active model block and the providers map), probed
+    via its OpenAI-compatible /models endpoint WITHOUT credentials — no
+    api_key is ever read out of the config. Cached for 60 seconds."""
     global _HERMES_LOCAL, _HERMES_LOCAL_TS
     now = time.time()
     if _HERMES_LOCAL is not None and now - _HERMES_LOCAL_TS < _HERMES_LOCAL_TTL:
         return _HERMES_LOCAL
-    out: list = []
-    default_model = None
-    try:
-        text = config_path().read_text(encoding="utf-8-sig")
-    except Exception:
-        text = ""
-    dm = re.search(r"^\s*default\s*:\s*['\"]?([\w./-]+)", text, re.M)
-    if dm:
-        default_model = dm.group(1)
-    # Active model block: provider name / api_key / base_url. The api_key
-    # (when present) is sent to the matching base_url probe only.
-    mb_url = None
-    mb_key = None
-    mb_provider = None
-    mblk = re.search(r"^model:\s*$", text, re.M)
-    if mblk:
-        rest = text[mblk.end():]
-        nxt = re.search(r"^[^#\s]", rest, re.M)
-        section = rest[: nxt.start()] if nxt else rest
-        k = re.search(r'^\s*api_key\s*:\s*["\']?([^\s"\']+)', section, re.M)
-        if k:
-            mb_key = k.group(1)
-        k = re.search(r'^\s*provider\s*:\s*["\']?([^\s"\']+)', section, re.M)
-        if k:
-            mb_provider = k.group(1)
-        k = re.search(r'^\s*base_url\s*:\s*["\']?(https?://[^\s"\']+)', section, re.M)
-        if k:
-            mb_url = k.group(1)
-        bu_re = re.compile(r"^\s*(?:base_url|baseUrl)\s*:\s*['\"]?(https?://[^\s'\"]+)", re.M)
-    seen = set()
-    for m in bu_re.finditer(text):
-        bu = m.group(1)
+    data = _load_yaml(config_path())
+    default_model = (data.get("model") or {}).get("default")
+    urls: list[str] = []
+
+    def _add(bu) -> None:
+        if not isinstance(bu, str) or not bu.startswith(("http://", "https://")):
+            return
         host_m = re.match(r"https?://([^/]+)", bu)
         if not host_m or host_m.group(1).split(":")[0] not in _LOCAL_HOSTS:
-            continue
-        if bu in seen:
-            continue
-        seen.add(bu)
+            return
+        if bu not in urls:
+            urls.append(bu)
+
+    _add((data.get("model") or {}).get("base_url"))
+    providers = data.get("providers")
+    if isinstance(providers, dict):
+        for prov in providers.values():
+            if isinstance(prov, dict):
+                _add(prov.get("base_url"))
+
+    out: list = []
+    for bu in urls:
+        host_m = re.match(r"https?://([^/]+)", bu)
         entry = {
-            "provider": host_m.group(1),
+            "provider": host_m.group(1) if host_m else bu,
             "base_url": bu,
             "models": [],
             "default_model": None,
@@ -711,23 +692,10 @@ def hermes_local_models() -> list:
         url = bu.rstrip("/")
         url = url[:-7] if url.endswith("/models") else url + "/models"
         try:
-            headers = {"Accept": "application/json"}
-            if mb_key:
-                if mb_url is None:
-                    use_key = True
-                else:
-                    hm2 = re.match("https?://([^/]+)", mb_url)
-                    use_key = bool(
-                        hm2
-                        and hm2.group(1).split(":")[0]
-                        == host_m.group(1).split(":")[0]
-                    )
-                if use_key:
-                    headers["Authorization"] = "Bearer " + mb_key
-            req = urllib.request.Request(url, headers=headers)
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=3) as r:
-                data = json.loads(r.read().decode("utf-8"))
-            ids = [d.get("id") for d in data.get("data", [])
+                payload = json.loads(r.read().decode("utf-8"))
+            ids = [d.get("id") for d in payload.get("data", [])
                    if isinstance(d, dict) and d.get("id")]
             entry["models"] = ids
             if default_model and default_model in ids:
