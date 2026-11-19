@@ -541,6 +541,14 @@ function Page({ ctx }) {
     if (updateData.package && v.package === updateData.package) return true
     return !!(updateData.active && String(updateData.active).startsWith(v.package + '-'))
   }
+  // Backend attivo ma non compatibile con la GPU (es. CUDA 13 su Pascal):
+  // avvisa in modo evidente, altrimenti il crash al benchmark sembra un mistero.
+  const activeBadVariant = variantMeta.find(
+    (vm) => isActiveVariant(vm.key) && (updateVariants[vm.key] || {}).suitable === false
+  )
+  const activeBadNote = activeBadVariant
+    ? (updateVariants[activeBadVariant.key] || {}).note || ''
+    : ''
 
   const updateServer = async (variant) => {
     if (busy) return
@@ -604,7 +612,13 @@ function Page({ ctx }) {
       gpu
         ? jsx('div', {
             className: 'mb-3 text-xs text-(--ui-text-secondary)',
-            children: `GPU: ${gpu.name || 'n/d'}${gpu.vendor ? ` · ${gpu.vendor}` : ''}${gpu.amd_gfx ? ` · bucket ${gpu.amd_gfx}` : ''}`,
+            children: `GPU: ${gpu.name || 'n/d'}${gpu.vendor ? ` · ${gpu.vendor}` : ''}${gpu.amd_gfx ? ` · bucket ${gpu.amd_gfx}` : ''}`
+          })
+        : null,
+      activeBadVariant
+        ? jsx('div', {
+            className: 'mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600',
+            children: `Il backend attivo (${activeBadVariant.label}) non è compatibile con questa GPU: ${activeBadNote || 'passa a un backend adatto.'}`
           })
         : null,
       jsxs('div', {

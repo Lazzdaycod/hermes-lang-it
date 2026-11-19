@@ -301,11 +301,28 @@ def _variant_key(pkg_name: str | None) -> str | None:
     return None
 
 
+def _compute_tuple(cc) -> tuple[int, int] | None:
+    """"6.1" -> (6, 1); None se manca o non e' numerico."""
+    try:
+        major, _, minor = str(cc).strip().partition(".")
+        return (int(major), int(minor or 0))
+    except (TypeError, ValueError):
+        return None
+
+
+# Le build CUDA ufficiali che il PM propone sono della linea 13.x: CUDA Toolkit
+# 13.0 ha rimosso Maxwell, Pascal e Volta (architetture pre-Turing), quindi
+# le GPU devono essere sm_75+. Una GTX 1060 (sm_61) non puo' eseguirle: il
+# server muore al primo forward con "no kernel image is available".
+_CUDA_MIN_COMPUTE = (7, 5)
+
+
 def _gpu_requirement(key: str, gpu: dict) -> tuple[bool, str | None]:
     """La variante e' adatta alla GPU rilevata? (suitable, nota per la UI).
 
-    Vulkan lo usa quasi ogni GPU; CUDA richiede una GPU NVIDIA; ROCm
-    (Lemonade) richiede una GPU AMD. Le note vanno in colonna "Versione".
+    Vulkan lo usa quasi ogni GPU; CUDA richiede una GPU NVIDIA sm_75+ (le
+    build 13.x hanno eliminato Pascal); ROCm (Lemonade) richiede una GPU AMD.
+    Le note vanno in colonna "Versione".
     """
     vendor = (gpu or {}).get("vendor")
     name = (gpu or {}).get("name")
@@ -316,6 +333,15 @@ def _gpu_requirement(key: str, gpu: dict) -> tuple[bool, str | None]:
     if key == "cuda":
         if vendor != "nvidia":
             return False, "Richiede una GPU NVIDIA"
+        ct = _compute_tuple((gpu or {}).get("compute_capability"))
+        if ct is None:
+            return False, "Compute capability non rilevata (nvidia-smi assente)"
+        if ct < _CUDA_MIN_COMPUTE:
+            sigla = str((gpu or {}).get("compute_capability")).replace(".", "")
+            return False, (
+                f"Le build CUDA attuali richiedono sm_75+ (CUDA 13 ha eliminato "
+                f"Maxwell/Pascal/Volta); la tua GPU è sm_{sigla}"
+            )
         return True, None
     if key == "rocm":
         if vendor != "amd":
@@ -330,7 +356,8 @@ def _variant_note(key: str, gpu: dict) -> str | None:
         bucket = (gpu or {}).get("amd_gfx")
         return f"Lemonade · bucket {bucket}" if bucket else "Lemonade ROCm"
     if key == "cuda":
-        return "GPU NVIDIA · build CUDA"
+        cc = (gpu or {}).get("compute_capability")
+        return f"GPU NVIDIA sm_{cc} · build CUDA" if cc else "GPU NVIDIA · build CUDA"
     if key == "vulkan":
         return "build Vulkan (AMD/Intel/NVIDIA)"
     return None
@@ -399,13 +426,20 @@ def _run_update(variant: str) -> None:
             raise RuntimeError(f"variante sconosciuta: {variant}")
         # ROCm (Lemonade) esiste solo per GPU AMD: verifica la GPU prima di
         # scaricare, così l'errore è chiaro e non a metà dell'update.
+        gpu = detect_gpu()
         if pkg_name == "llamacpp-rocm-lemonade":
-            gpu = detect_gpu()
             if gpu.get("vendor") != "amd":
                 raise RuntimeError(
                     "Nessuna GPU AMD rilevata: Lemonade ROCm non è adatto a questa macchina")
             if not gpu.get("amd_gfx"):
                 raise RuntimeError("Bucket gfx non rilevato per la GPU AMD")
+        # CUDA: le build che il PM propone sono 13.x, prive dei kernel pre-Turing
+        # (Pascal sm_61 incluso). Scaricarle su una GPU non compatibile porta a
+        # un server che muore al primo forward: meglio fermarsi prima.
+        if variant == "cuda":
+            suitable, reason = _gpu_requirement("cuda", gpu)
+            if not suitable:
+                raise RuntimeError(f"Build CUDA non adatte a questa GPU: {reason}")
         active_pkg, _ = _active_variant()
         restart = pkg_name == active_pkg
         package = get_package(pkg_name)
