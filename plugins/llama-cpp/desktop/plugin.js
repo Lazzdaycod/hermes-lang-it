@@ -82,6 +82,7 @@ const REPO_ROCM_URL = 'https://github.com/ggml-org/llama.cpp/releases'
 
 const LOCALES = {
   en: {
+    'catalog.notice': 'Catalog build — update, stop/restart and build select/delete are not included to follow the catalog policy. Use Settings → Local models, or install the full version from the Lazzdaycod/hermes-lang-it repository.',
     subtitle: 'Backend server, system info and per-model presets',
     'server.running': 'running',
     'server.idle': 'idle',
@@ -199,6 +200,7 @@ const LOCALES = {
     'bench.recent': 'Recent sessions'
   },
   it: {
+    'catalog.notice': 'Versione catalogo — aggiorna, stop/riavvia e seleziona/elimina build non sono inclusi per rispettare le regole del catalogo. Usa Impostazioni → Modelli locali, oppure installa la versione completa dalla repository Lazzdaycod/hermes-lang-it.',
     subtitle: 'Server di backend, info di sistema e preset per modello',
     'server.running': 'attivo',
     'server.idle': 'inattivo',
@@ -1285,6 +1287,11 @@ function Page({ ctx }) {
       children: jsxs('div', {
         className: 'mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 py-6',
         children: [
+          jsx('div', {
+            className:
+              'rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-600',
+            children: t('catalog.notice')
+          }),
           jsxs('div', {
             className:
               'flex flex-wrap items-center gap-3 rounded-xl border border-(--ui-stroke-secondary) bg-(--ui-bg-elevated) px-4 py-3',

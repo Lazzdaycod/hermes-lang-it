@@ -1,5 +1,7 @@
 # llama-cpp — Hermes llama.cpp server manager
 
+> **Catalog build.** Questa versione segue le regole del catalogo: non include Aggiorna, Stop/Riavvia, Seleziona/Elimina build né Ripristina. Usa **Impostazioni → Modelli locali** per quelle azioni, oppure installa la **versione completa** dalla repository [Lazzdaycod/hermes-lang-it](https://github.com/Lazzdaycod/hermes-lang-it) (branch `main`).
+
 Desktop page + FastAPI backend for the Hermes-managed **llama.cpp** runtime: detect
 the GPU and pick the right build, list local GGUF models, edit and apply per-model
 presets, load/unload the active model, and benchmark generation / prefill speed.
