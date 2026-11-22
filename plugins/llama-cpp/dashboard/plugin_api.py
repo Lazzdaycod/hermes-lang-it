@@ -10,22 +10,17 @@ Routes:
                    window override, modello attivo e reload del router
     POST /load     {model} -> load sul router (202, async)
     POST /unload   {model} -> unload sul router (202, async)
-    POST /stop     ferma il server gestito (route pubblica del core)
-    POST /restart  riavvia il server gestito (route pubbliche del core)
-    GET  /update   stato + ultime versioni disponibili per le fonti
-                   (Vulkan, CUDA e ROCm: build ufficiali ggml-org)
-    POST /update   {variant: "vulkan" | "cuda" | "rocm"} — delega al core
-                   (POST /api/local-models/runtime/install + poll del job);
-                   il core gestisce pin, download, verifica e riavvio
+    GET  /update   sola lettura: build installata + ultime versioni note per
+                   le fonti ufficiali ggml-org (Vulkan, CUDA, ROCm/HIP);
+                   nessuna installazione, nessun lifecycle
     GET  /builds   build llama.cpp installate nello store (sola lettura)
 
 Nessuna credenziale (api_key del router) e' mai restituita al frontend:
-le chiamate al router avvengono lato server. Il plugin non tocca mai il
-package manager o il bootstrap del runtime tramite internals privati:
-lifecycle e installazioni passano dalle route pubbliche ``/api/local-models/*``
-(vedi ``hermes_api.py``), le versioni si leggono dalle release pubbliche
-ggml-org/llama.cpp. Selezione/rimozione build: in attesa di una route
-pubblica del core (issue upstream).
+le chiamate al router avvengono lato server. Il plugin non chiama alcuna
+route interna del core: stop/start/restart e installazioni del runtime
+sono nel core (Impostazioni -> Modelli locali). Le versioni si leggono
+dalle release pubbliche ggml-org/llama.cpp. Selezione/rimozione build:
+in attesa di una route pubblica del core (issue upstream).
 """
 
 from __future__ import annotations
@@ -62,7 +57,6 @@ from llama_cpp_core import (  # noqa: E402
     status_snapshot,
     unload_model_async,
 )
-from hermes_api import CoreAPIError, core_request, poll_job  # noqa: E402
 
 router = APIRouter()
 
@@ -105,64 +99,20 @@ async def post_unload(body: dict):
     return JSONResponse(result, status_code=200 if result.get("ok") else 400)
 
 
-# ------------------------------------------------------------------ lifecycle
-#
-# Stop/start passano dalla route pubblica del core (POST /api/local-models/
-# server): e' il core a possedere supervisor, stato e autostart del runtime.
-# Nota: lo stop del core e' durevole (disabilita l'autostart finche' l'utente
-# non riaccende); il restart riaccende esplicitamente.
-
-@router.post("/stop")
-async def stop_server():
-    """Stop the managed llama.cpp server via the core's public route."""
-    try:
-        await asyncio.to_thread(
-            core_request, "POST", "/api/local-models/server", {"action": "stop"}, 120)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"stop failed: {exc}")
-    return JSONResponse({"ok": True})
-
-
-@router.post("/restart")
-async def restart_server():
-    """Restart the managed llama.cpp server via the core's public routes
-    (runs in the background: a cold boot can take ~2 min to become healthy)."""
-
-    def _run():
-        try:
-            core_request("POST", "/api/local-models/server", {"action": "stop"}, 120)
-            core_request("POST", "/api/local-models/server", {"action": "start"}, 300)
-        except Exception as exc:
-            logger.warning("llama-cpp restart failed: %s", exc)
-
-    threading.Thread(target=_run, daemon=True, name="llama-cpp-restart").start()
-    return JSONResponse({"ok": True})
-
-
 # ------------------------------------------------------------------ update
 #
-# Stato condiviso della procedura di aggiornamento (visibile da GET /update,
-# aggiornato dal thread di POST /update). Tre fonti aggiornabili, tutte build
+# Sola lettura: le ultime versioni note per tre fonti, tutte build
 # ufficiali ggml-org/llama.cpp:
 #   - "vulkan" -> llamacpp-vulkan (backend AMD/Intel/NVIDIA)
 #   - "cuda"   -> llamacpp-cuda (build NVIDIA, sm_75+)
 #   - "rocm"   -> llamacpp-hip (build ROCm/HIP ufficiale per AMD)
-# L'installazione e' delegata al core (POST /api/local-models/runtime/install):
-# pin del lockfile, download, verifica e riavvio sono tutti operazioni del
-# package manager Hermes, eseguite dalle sue route pubbliche. Qui si leggono
-# soltanto le release pubbliche GitHub per mostrare l'ultima versione.
+# Installazioni, stop/restart sono operazioni del core (Impostazioni ->
+# Modelli locali); qui si leggono soltanto le release pubbliche GitHub.
 
 _VARIANTS = {
     "vulkan": "llamacpp-vulkan",
     "cuda": "llamacpp-cuda",
     "rocm": "llamacpp-hip",
-}
-
-# Chiave variante -> backend accettato da /api/local-models/runtime/install.
-_VARIANT_BACKEND = {
-    "vulkan": "vulkan",
-    "cuda": "cuda",
-    "rocm": "hip",
 }
 
 # Package PM -> chiave variante. Include le build legacy non piu' proposte
@@ -204,17 +154,12 @@ def _display_name(raw: str) -> str:
     return _VARIANT_DISPLAY.get(_display_variant(raw), raw)
 
 
-_update_lock = threading.Lock()
-_update_state = {
-    "status": "idle",
-    "message": None,
-    "progress": 0.0,
-    "target": None,
-    "variant": None,
-    "check": None,
-    "resolved_at": 0.0,
-}
-_RESOLVE_TTL = 120.0    # secondi: non interroghiamo l'upstream ad ogni poll
+# Cache del resolve versioni (sola lettura): non interroghiamo l'upstream
+# ad ogni poll. La UI mostra le versioni; installazioni e lifecycle sono
+# operazioni del core, non del plugin.
+_resolve_lock = threading.Lock()
+_resolve_cache: dict = {"ts": 0.0, "data": None}
+_RESOLVE_TTL = 120.0    # secondi
 
 
 def _server_json_path() -> Path:
@@ -299,7 +244,7 @@ def _gh_latest_release() -> dict:
     except urllib.error.HTTPError as exc:
         if exc.code in (403, 429):
             raise RuntimeError(
-                "rate limit GitHub (anonimo: 60 req/ora) — imposta GH_TOKEN o riprova piu' tardi")
+                "GitHub rate limit (anonymous: 60 req/h) — set GH_TOKEN or retry later")
         raise RuntimeError(f"GitHub HTTP {exc.code}")
     best: tuple[int, dict] | None = None
     for rel in releases if isinstance(releases, list) else []:
@@ -311,7 +256,7 @@ def _gh_latest_release() -> dict:
         if best is None or num > best[0]:
             best = (num, rel)
     if best is None:
-        raise RuntimeError("nessuna release build (bNNNNN) trovata su GitHub")
+        raise RuntimeError("no build release (bNNNNN) found on GitHub")
     rel = best[1]
     out = {"tag": str(rel.get("tag_name") or ""),
            "assets": [str(a.get("name") or "") for a in (rel.get("assets") or [])]}
@@ -353,18 +298,18 @@ def _resolve_variant(pkg_name: str, current: str | None) -> dict:
     family = _platform_family()
     prefix = (_GH_ASSET_PREFIX.get(key or "") or {}).get(family or "")
     if not prefix:
-        return {"ok": False, "error": "nessuna build pubblicata per questa piattaforma"}
+        return {"ok": False, "error": "no build published for this platform"}
     try:
         release = _gh_latest_release()
     except Exception as exc:
-        return {"ok": False, "error": f"check fallito: {exc}"}
+        return {"ok": False, "error": f"check failed: {exc}"}
     tag = release["tag"]
     version = tag[1:] if tag.startswith("b") else tag
     if not version:
-        return {"ok": False, "error": "release GitHub senza tag valido"}
+        return {"ok": False, "error": "GitHub release without a valid tag"}
     if not any(n.startswith("llama-") and prefix in n for n in release["assets"]):
         return {"ok": False,
-                "error": f"la release {tag} non pubblica una build {family} per questa fonte"}
+                "error": f"release {tag} does not publish a {family} build for this source"}
     installed = current or _installed_build(pkg_name)
     return {
         "ok": True,
@@ -373,7 +318,7 @@ def _resolve_variant(pkg_name: str, current: str | None) -> dict:
         "pinned": None,
         "latest": version,
         "update_available": installed != version,
-        "reason": "" if installed else "non installata",
+        "reason": "" if installed else "not installed",
     }
 
 
@@ -415,24 +360,24 @@ def _gpu_requirement(key: str, gpu: dict) -> tuple[bool, str | None]:
     name = (gpu or {}).get("name")
     if key == "vulkan":
         if not name:
-            return False, "Nessuna GPU rilevata"
+            return False, "No GPU detected"
         return True, None
     if key == "cuda":
         if vendor != "nvidia":
-            return False, "Richiede una GPU NVIDIA"
+            return False, "Requires an NVIDIA GPU"
         ct = _compute_tuple((gpu or {}).get("compute_capability"))
         if ct is None:
-            return False, "Compute capability non rilevata (nvidia-smi assente)"
+            return False, "Compute capability not detected (nvidia-smi missing)"
         if ct < _CUDA_MIN_COMPUTE:
             sigla = str((gpu or {}).get("compute_capability")).replace(".", "")
             return False, (
-                f"Le build CUDA attuali richiedono sm_75+ (CUDA 13 ha eliminato "
-                f"Maxwell/Pascal/Volta); la tua GPU è sm_{sigla}"
+                f"Current CUDA builds require sm_75+ (CUDA 13 dropped "
+                f"Maxwell/Pascal/Volta); your GPU is sm_{sigla}"
             )
         return True, None
     if key == "rocm":
         if vendor != "amd":
-            return False, "Richiede una GPU AMD"
+            return False, "Requires an AMD GPU"
         return True, None
     return True, None
 
@@ -440,12 +385,12 @@ def _gpu_requirement(key: str, gpu: dict) -> tuple[bool, str | None]:
 def _variant_note(key: str, gpu: dict) -> str | None:
     """Dettaglio "perche' adatto" mostrato accanto alla versione."""
     if key == "rocm":
-        return "GPU AMD · build ROCm ufficiale (HIP)"
+        return "AMD GPU · official ROCm build (HIP)"
     if key == "cuda":
         cc = (gpu or {}).get("compute_capability")
-        return f"GPU NVIDIA sm_{cc} · build CUDA" if cc else "GPU NVIDIA · build CUDA"
+        return f"NVIDIA GPU sm_{cc} · CUDA build" if cc else "NVIDIA GPU · CUDA build"
     if key == "vulkan":
-        return "build Vulkan (AMD/Intel/NVIDIA)"
+        return "Vulkan build (AMD/Intel/NVIDIA)"
     return None
 
 
@@ -483,85 +428,22 @@ def _resolve_all() -> dict:
     return {"active": active_pkg or None, "variants": variants, "gpu": gpu}
 
 
-def _set_state(**kw) -> None:
-    with _update_lock:
-        _update_state.update(kw)
-
-
-def _run_update(variant: str) -> None:
-    """Corpo dell'aggiornamento (thread daemon).
-
-    Delega interamente al core: POST /api/local-models/runtime/install con il
-    backend della variante, poi poll del job pubblico. Pin del lockfile,
-    download, verifica e riavvio del server (quando serve) sono operazioni
-    del package manager Hermes, non del plugin.
-    """
-    try:
-        pkg_name = _VARIANTS.get(variant, "")
-        if not pkg_name:
-            raise RuntimeError(f"variante sconosciuta: {variant}")
-        # Verifica la GPU prima di avviare l'installazione, cosi' l'errore e'
-        # chiaro e non a meta' del download (CUDA 13.x: sm_75+; ROCm: AMD).
-        gpu = detect_gpu()
-        suitable, reason = _gpu_requirement(variant, gpu)
-        if not suitable:
-            raise RuntimeError(f"Build non adatte a questa GPU: {reason}")
-        backend = _VARIANT_BACKEND[variant]
-        _set_state(status="running", variant=variant,
-                   message="Avvio installazione dal core Hermes…",
-                   progress=0.0, target=None)
-        resp = core_request("POST", "/api/local-models/runtime/install",
-                            {"backend": backend}, timeout=60)
-        job_id = resp.get("job_id")
-        if not job_id:
-            raise RuntimeError("il core non ha restituito un job_id")
-        tag = resp.get("tag") or ""
-        _set_state(target=tag or None,
-                   message=f"Installo {tag} ({backend})…", progress=0.02)
-
-        def _on_progress(view: dict) -> None:
-            kw: dict = {"message": view.get("detail") or view.get("phase")
-                        or f"Installo {tag}…"}
-            percent = view.get("percent")
-            if percent is not None:
-                kw["progress"] = min(0.95, 0.05 + 0.9 * (float(percent) / 100.0))
-            _set_state(**kw)
-
-        final = poll_job(job_id, _on_progress, timeout=2400)
-        if final.get("status") == "done":
-            _set_state(status="done", progress=1.0,
-                       message=final.get("detail") or f"Aggiornato a {tag}")
-        else:
-            _set_state(status="error",
-                       message=final.get("error") or final.get("detail")
-                       or "installazione fallita")
-    except Exception as exc:
-        logger.exception("llama-cpp update failed")
-        _set_state(status="error", message=str(exc))
-    finally:
-        _set_state(check=None, resolved_at=0.0)  # forza un resolve fresco
-
-
 @router.get("/update")
 async def update_check():
-    """Stato dell'aggiornamento + ultime versioni disponibili per le
-    fonti (build ufficiali ggml-org/llama.cpp: Vulkan, CUDA e ROCm/HIP).
-    Il resolve viene interrogato al massimo ogni ``_RESOLVE_TTL`` secondi
-    per non martellare l'upstream ad ogni poll.
+    """Sola lettura: build installata + ultime versioni note per le fonti
+    (build ufficiali ggml-org/llama.cpp: Vulkan, CUDA e ROCm/HIP).
+    Il resolve viene interrogato al massimo ogni ``_RESOLVE_TTL`` secondi.
+    Stop/start/restart e installazioni sono operazioni del core
+    (Impostazioni -> Modelli locali); il plugin non le esegue.
     """
-    check = None
-    with _update_lock:
-        if (
-            _update_state["check"] is not None
-            and time.monotonic() - _update_state["resolved_at"] <= _RESOLVE_TTL
-        ):
-            check = _update_state["check"]
+    now = time.monotonic()
+    with _resolve_lock:
+        check = _resolve_cache["data"] if now - _resolve_cache["ts"] <= _RESOLVE_TTL else None
     if check is None:
         check = await asyncio.to_thread(_resolve_all)
-        _set_state(check=check, resolved_at=time.monotonic())
+        with _resolve_lock:
+            _resolve_cache.update(ts=now, data=check)
 
-    with _update_lock:
-        state = {k: _update_state[k] for k in ("status", "message", "progress", "target", "variant")}
     variants = {}
     for key, info in (check.get("variants") or {}).items():
         entry = {
@@ -576,49 +458,12 @@ async def update_check():
         if not info.get("ok") and info.get("error"):
             entry["error"] = info["error"]
         variants[key] = entry
-    payload: dict = {
-        **state,
+    return JSONResponse({
         "variants": variants,
         "gpu": check.get("gpu"),
         "active": check.get("active"),
-        "active_key": None,
-        "package": None,
-        "current": None,
-        "latest": None,
-        "update_available": False,
-    }
-    # Campi in testa = backend attivo (compatibilità col frontend precedente).
-    active_key = _variant_key(check.get("active"))
-    if active_key:
-        payload["active_key"] = active_key
-    if active_key and active_key in variants:
-        payload.update({
-            "package": variants[active_key].get("package"),
-            "current": variants[active_key].get("current"),
-            "latest": variants[active_key].get("latest"),
-            "update_available": variants[active_key].get("update_available"),
-        })
-    return JSONResponse(payload)
-
-
-@router.post("/update")
-async def update_server(body: dict = None):
-    """Aggiorna una singola fonte: ``{variant: "vulkan" | "cuda" | "rocm"}``
-    (omessa = la fonte del backend in uso). L'installazione e' delegata alle
-    route pubbliche del core; lo stato si legge da GET /update
-    (status/progress/message)."""
-    variant = (body or {}).get("variant") or "active"
-    if variant == "active":
-        variant = _variant_key(_active_variant()[0]) or "vulkan"
-    if variant not in _VARIANTS:
-        raise HTTPException(status_code=400,
-                            detail=f"variante sconosciuta: {variant}")
-    with _update_lock:
-        if _update_state["status"] == "running":
-            raise HTTPException(status_code=409, detail="update already running")
-    threading.Thread(target=_run_update, args=(variant,), daemon=True,
-                     name="llama-cpp-update").start()
-    return JSONResponse({"ok": True})
+        "active_key": _variant_key(check.get("active")),
+    })
 
 
 # ------------------------------------------------------------------ bench
@@ -738,9 +583,9 @@ def _run_bench(model: str, mode: str, prompt_tokens: int, output_tokens: int,
     base_url = str(state.get("base_url") or "")
     api_key = str(state.get("api_key") or "")
     if not base_url:
-        return {"ok": False, "error": "server non attivo (runtimes/llamacpp/server.json mancante)"}
+        return {"ok": False, "error": "server not running (runtimes/llamacpp/server.json missing)"}
     if not status_snapshot().get("running"):
-        return {"ok": False, "error": "server llama.cpp non attivo"}
+        return {"ok": False, "error": "llama.cpp server not running"}
     if not _bench_model_loaded(model):
         load_model_async(model)
         for _ in range(180):
@@ -748,7 +593,7 @@ def _run_bench(model: str, mode: str, prompt_tokens: int, output_tokens: int,
             if _bench_model_loaded(model):
                 break
         if not _bench_model_loaded(model):
-            return {"ok": False, "error": f"modello non caricato: {model}"}
+            return {"ok": False, "error": f"model not loaded: {model}"}
     snap = status_snapshot()
     active_pkg, _active_build = _active_variant()
     preset = read_presets().get(model) or {}
@@ -786,7 +631,7 @@ async def run_bench(body: dict = None):
     body = body or {}
     model = str(body.get("model") or "").strip()
     if not model:
-        raise HTTPException(status_code=400, detail="model mancante")
+        raise HTTPException(status_code=400, detail="model missing")
     mode = str(body.get("mode") or "both").strip()
     if mode not in ("generation", "prefill", "both"):
         mode = "both"

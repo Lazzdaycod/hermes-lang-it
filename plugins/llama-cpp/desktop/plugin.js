@@ -158,7 +158,45 @@ const LOCALES = {
     'builds.hint': 'Installed llama.cpp builds (read-only). The active one is what the server runs. Selecting or removing a build from this panel will arrive with a public core route (NousResearch/hermes-agent#157878).',
     'builds.empty': 'No builds installed in the store.',
     'builds.active': 'active',
-    'builds.deprecated': 'deprecated'
+    'builds.deprecated': 'deprecated',
+    'controls.header': 'Runtime versions',
+    'controls.hint': 'Update, stop and restart the server from Settings → Local models.',
+    'controls.gpu': 'GPU',
+    'controls.badBackend': 'The active backend is not compatible with this GPU',
+    'controls.switchHint': 'switch to a suitable backend.',
+    'controls.version': 'Version',
+    'controls.notInstalled': 'not installed',
+    'controls.notSuitable': 'Not suitable for this GPU',
+    'controls.unknown': 'n/a',
+    'controls.updateAvailable': 'update available',
+    'controls.active': 'active',
+    'controls.desc.vulkan': 'Vulkan GPU — AMD, Intel, NVIDIA — source: ggml-org/llama.cpp',
+    'controls.desc.rocm': 'AMD RDNA3 GPU (RX 7000, e.g. 7900 XTX) — official ROCm/HIP build, source: ggml-org/llama.cpp',
+    'controls.desc.cuda': 'NVIDIA GPU — source: ggml-org/llama.cpp',
+    'bench.header': 'Benchmark',
+    'bench.model': 'Model',
+    'bench.mode': 'Mode',
+    'bench.mode.generation': 'generation (tok/s)',
+    'bench.mode.prefill': 'prefill (tok/s)',
+    'bench.mode.both': 'both',
+    'bench.promptTokens': 'Prompt tokens',
+    'bench.outputTokens': 'Output tokens',
+    'bench.runs': 'Runs',
+    'bench.run': 'Run benchmark',
+    'bench.running': 'Benchmark running…',
+    'bench.col.mode': 'Mode',
+    'bench.col.prompt': 'Prompt tok',
+    'bench.col.output': 'Output tok',
+    'bench.col.ttft': 'TTFT s',
+    'bench.col.total': 'Total s',
+    'bench.col.tps': 'tok/s',
+    'bench.board': 'Leaderboard (best result per model)',
+    'bench.col.model': 'Model',
+    'bench.col.gen': 'Gen tok/s',
+    'bench.col.prefill': 'Prefill tok/s',
+    'bench.col.server': 'Server',
+    'bench.col.preset': 'Preset',
+    'bench.recent': 'Recent sessions'
   },
   it: {
     subtitle: 'Server di backend, info di sistema e preset per modello',
@@ -237,7 +275,45 @@ const LOCALES = {
     'builds.hint': 'Build llama.cpp installate (sola lettura). Quella attiva è quella che usa il server. Selezione e rimozione dal pannello arriveranno con una route pubblica del core (NousResearch/hermes-agent#157878).',
     'builds.empty': 'Nessuna build installata nello store.',
     'builds.active': 'attiva',
-    'builds.deprecated': 'deprecata'
+    'builds.deprecated': 'deprecata',
+    'controls.header': 'Versioni runtime',
+    'controls.hint': 'Aggiorna, ferma e riavvia il server da Impostazioni → Modelli locali.',
+    'controls.gpu': 'GPU',
+    'controls.badBackend': 'Il backend attivo non è compatibile con questa GPU',
+    'controls.switchHint': 'passa a un backend adatto.',
+    'controls.version': 'Versione',
+    'controls.notInstalled': 'non installata',
+    'controls.notSuitable': 'Non adatto a questa GPU',
+    'controls.unknown': 'n/d',
+    'controls.updateAvailable': 'aggiornamento disponibile',
+    'controls.active': 'attivo',
+    'controls.desc.vulkan': 'GPU Vulkan — AMD, Intel, NVIDIA — sorgente: ggml-org/llama.cpp',
+    'controls.desc.rocm': 'GPU AMD RDNA3 (RX 7000, es. 7900 XTX) — build ROCm/HIP ufficiale, sorgente: ggml-org/llama.cpp',
+    'controls.desc.cuda': 'GPU NVIDIA — sorgente: ggml-org/llama.cpp',
+    'bench.header': 'Benchmark',
+    'bench.model': 'Modello',
+    'bench.mode': 'Modalità',
+    'bench.mode.generation': 'generation (tok/s)',
+    'bench.mode.prefill': 'prefill (tok/s)',
+    'bench.mode.both': 'entrambi',
+    'bench.promptTokens': 'Prompt tok',
+    'bench.outputTokens': 'Output tok',
+    'bench.runs': 'Run',
+    'bench.run': 'Avvia benchmark',
+    'bench.running': 'Benchmark in corso…',
+    'bench.col.mode': 'Modalità',
+    'bench.col.prompt': 'Prompt tok',
+    'bench.col.output': 'Output tok',
+    'bench.col.ttft': 'TTFT s',
+    'bench.col.total': 'Tot s',
+    'bench.col.tps': 'tok/s',
+    'bench.board': 'Classifica (miglior risultato per modello)',
+    'bench.col.model': 'Modello',
+    'bench.col.gen': 'Gen tok/s',
+    'bench.col.prefill': 'Prefill tok/s',
+    'bench.col.server': 'Server',
+    'bench.col.preset': 'Preset',
+    'bench.recent': 'Ultime sessioni'
   }
 }
 
@@ -348,8 +424,7 @@ function Page({ ctx }) {
   const updateQuery = useQuery({
     queryKey: ['llama-cpp', 'update'],
     queryFn: () => ctx.rest('/update'),
-    refetchInterval: (query) =>
-      query.state.data && query.state.data.status === 'running' ? 2000 : 30000
+    refetchInterval: 30000
   })
 
   const modelsQuery = useQuery({
@@ -406,32 +481,6 @@ function Page({ ctx }) {
   }
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['llama-cpp'] })
-
-  const restartServer = async () => {
-    setBusy({ kind: 'restart' });
-    try {
-      await ctx.rest('/restart', { method: 'POST' });
-      host.notify({ kind: 'info', message: 'Server restarting...' });
-      invalidate();
-    } catch (err) {
-      host.notify({ kind: 'error', message: apiError(err) });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const stopServer = async () => {
-    setBusy({ kind: 'stop' });
-    try {
-      await ctx.rest('/stop', { method: 'POST' });
-      host.notify({ kind: 'info', message: 'Server stopped' });
-      invalidate();
-    } catch (err) {
-      host.notify({ kind: 'error', message: apiError(err) });
-    } finally {
-      setBusy(null);
-    }
-  };
 
   const runLoadUnload = async (kind, model) => {
     if (busy) return
@@ -502,23 +551,22 @@ function Page({ ctx }) {
   }
 
   const updateData = updateQuery.data || null
-  const runningVariant = updateData && updateData.status === 'running' ? updateData.variant : null
   const updateVariants = (updateData && updateData.variants) || {}
   const gpu = (updateData && updateData.gpu) || null
 
-  // Ogni backend ha il suo riquadro (nome, descrizione, versione e pulsante):
-  // evita la confusione tra build diverse (es. Vulkan b12110 vs ROCm).
+  // Ogni backend ha il suo riquadro (nome, descrizione, versione): sola
+  // lettura. Stop/restart e installazioni sono nel core (Impostazioni →
+  // Modelli locali); il plugin non esegue azioni di lifecycle.
   const variantMeta = [
-    { key: 'vulkan', label: 'Vulkan', desc: 'GPU Vulkan — AMD, Intel, NVIDIA — sorgente: ggml-org/llama.cpp' },
-    { key: 'rocm', label: 'ROCm', desc: 'GPU AMD RDNA3 (RX 7000, es. 7900 XTX) — build ROCm/HIP ufficiale, sorgente: ggml-org/llama.cpp' },
-    { key: 'cuda', label: 'CUDA', desc: 'GPU NVIDIA — sorgente: ggml-org/llama.cpp' }
+    { key: 'vulkan', label: 'Vulkan', descKey: 'controls.desc.vulkan' },
+    { key: 'rocm', label: 'ROCm', descKey: 'controls.desc.rocm' },
+    { key: 'cuda', label: 'CUDA', descKey: 'controls.desc.cuda' }
   ]
   const isActiveVariant = (key) => {
     if (!updateData || !key) return false
     if (updateData.active_key) return updateData.active_key === key
     const v = (updateData.variants || {})[key] || {}
     if (!v.package) return false
-    if (updateData.package && v.package === updateData.package) return true
     return !!(updateData.active && String(updateData.active).startsWith(v.package + '-'))
   }
   // Backend attivo ma non compatibile con la GPU (es. CUDA 13 su Pascal):
@@ -530,150 +578,64 @@ function Page({ ctx }) {
     ? (updateVariants[activeBadVariant.key] || {}).note || ''
     : ''
 
-  const updateServer = async (variant) => {
-    if (busy) return
-    setBusy({ kind: 'update', variant })
-    try {
-      await ctx.rest('/update', { method: 'POST', body: { variant } })
-      host.notify({ kind: 'info', message: 'Aggiornamento avviato' })
-    } catch (err) {
-      host.notify({ kind: 'error', message: apiError(err) })
-      setBusy(null)
-    }
-  }
-
-  // L'aggiornamento gira in background sul backend: quando finisce (done /
-  // error) si chiuda la busy state, si notifica e si invalidano le query.
-  useEffect(() => {
-    const u = updateQuery.data
-    if (!u || (u.status !== 'done' && u.status !== 'error')) return
-    if (busy && busy.kind === 'update') {
-      host.notify({ kind: u.status === 'done' ? 'success' : 'error', message: u.message || '' })
-      setBusy(null)
-      invalidate()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateQuery.data])
-
-  // ---- runtime builds: elenco in sola lettura ----------------------------
-  // Selezione/rimozione: rimosse in attesa di una route pubblica del core
-  // (issue upstream); il plugin non tocca piu' lockfile/facts/store del PM.
-
   const controlSection = jsxs('section', {
     className: sectionCls,
     children: [
-      jsx('h2', { className: `${sectionTitleCls} mb-3`, children: 'Controlli' }),
+      jsx('h2', { className: `${sectionTitleCls} mb-3`, children: t('controls.header') }),
       gpu
         ? jsx('div', {
             className: 'mb-3 text-xs text-(--ui-text-secondary)',
-            children: `GPU: ${gpu.name || 'n/d'}${gpu.vendor ? ` · ${gpu.vendor}` : ''}`
+            children: `${t('controls.gpu')}: ${gpu.name || t('controls.unknown')}${gpu.vendor ? ` · ${gpu.vendor}` : ''}`
           })
         : null,
       activeBadVariant
         ? jsx('div', {
             className: 'mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600',
-            children: `Il backend attivo (${activeBadVariant.label}) non è compatibile con questa GPU: ${activeBadNote || 'passa a un backend adatto.'}`
+            children: `${t('controls.badBackend')} (${activeBadVariant.label}): ${activeBadNote || t('controls.switchHint')}`
           })
         : null,
-      jsxs('div', {
+      jsx('div', {
         className: 'flex flex-col gap-2',
-        children: [
-          ...variantMeta.map((vm) => {
-            const v = updateVariants[vm.key] || {}
-            const active = isActiveVariant(vm.key)
-            const running = runningVariant === vm.key
-            let versionLine
-            if (v.error) versionLine = `Versione: ${v.error}`
-            else if (v.suitable === false) versionLine = v.note || 'Non adatto a questa GPU'
-            else if (v.latest)
-              versionLine = `Versione: ${v.current ? v.current : 'non installata'} → ${v.latest}${v.update_available ? ' · aggiornamento disponibile' : ''}${v.source ? ` · ${v.source}` : ''}`
-            else versionLine = 'Versione: n/d'
-            return jsxs('div', {
-              key: vm.key,
-              className: 'flex items-center justify-between gap-3 rounded-md border border-(--ui-border) px-3 py-2',
-              children: [
-                jsxs('div', {
-                  className: 'min-w-0',
-                  children: [
-                    jsxs('div', {
-                      className: 'flex items-center gap-2 text-sm font-medium',
-                      children: [
-                        vm.label,
-                        active
-                          ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quinary) px-1.5 py-0.5 text-[10px] text-(--ui-text-secondary)', children: 'attivo' })
-                          : null
-                      ]
-                    }),
-                    jsx('div', { className: 'text-xs text-(--ui-text-secondary)', children: vm.desc }),
-                    jsx('div', { className: 'text-xs text-(--ui-text-secondary)', children: versionLine }),
-                    v.suitable !== false && v.note
-                      ? jsx('div', { className: 'text-[11px] text-(--ui-text-secondary)', children: v.note })
-                      : null
-                  ]
-                }),
-                jsx('button', {
-                  type: 'button',
-                  disabled: !!busy || !v.update_available || v.suitable === false,
-                  onClick: () => updateServer(vm.key),
-                  className: actionBtnCls,
-                  children: running ? 'Aggiornamento…' : 'Aggiorna'
-                })
-              ]
-            })
-          }),
-          jsxs('div', {
-            className: 'flex flex-wrap gap-2',
+        children: variantMeta.map((vm) => {
+          const v = updateVariants[vm.key] || {}
+          const active = isActiveVariant(vm.key)
+          let versionLine
+          if (v.error) versionLine = `${t('controls.version')}: ${v.error}`
+          else if (v.suitable === false) versionLine = v.note || t('controls.notSuitable')
+          else if (v.latest)
+            versionLine = `${t('controls.version')}: ${v.current ? v.current : t('controls.notInstalled')} → ${v.latest}${v.update_available ? ` · ${t('controls.updateAvailable')}` : ''}${v.source ? ` · ${v.source}` : ''}`
+          else versionLine = `${t('controls.version')}: ${t('controls.unknown')}`
+          return jsxs('div', {
+            key: vm.key,
+            className: 'flex items-center justify-between gap-3 rounded-md border border-(--ui-border) px-3 py-2',
             children: [
-              jsx('button', {
-                type: 'button',
-                disabled: !!busy,
-                onClick: restartServer,
-                className: actionBtnCls,
-                children: 'Riavvia'
-              }),
-              jsx('button', {
-                type: 'button',
-                disabled: !!busy,
-                onClick: stopServer,
-                className: actionBtnCls,
-                children: 'Stop'
+              jsxs('div', {
+                className: 'min-w-0',
+                children: [
+                  jsxs('div', {
+                    className: 'flex items-center gap-2 text-sm font-medium',
+                    children: [
+                      vm.label,
+                      active
+                        ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quinary) px-1.5 py-0.5 text-[10px] text-(--ui-text-secondary)', children: t('controls.active') })
+                        : null
+                    ]
+                  }),
+                  jsx('div', { className: 'text-xs text-(--ui-text-secondary)', children: t(vm.descKey) }),
+                  jsx('div', { className: 'text-xs text-(--ui-text-secondary)', children: versionLine }),
+                  v.suitable !== false && v.note
+                    ? jsx('div', { className: 'text-[11px] text-(--ui-text-secondary)', children: v.note })
+                    : null
+                ]
               })
             ]
           })
-        ]
+        })
       }),
-      // Barra di avanzamento del download durante l'aggiornamento in corso.
-      updateData && updateData.status === 'running'
-        ? jsxs('div', {
-            className: 'mt-3',
-            children: [
-              jsxs('div', {
-                className: 'mb-1 flex items-center justify-between text-xs text-(--ui-text-secondary)',
-                children: [
-                  jsx('span', {
-                    children: `Aggiornamento ${runningVariant === 'rocm' ? 'ROCm' : runningVariant === 'cuda' ? 'CUDA' : 'Vulkan'}${updateData.target ? ` (b${updateData.target})` : ''}…`
-                  }),
-                  jsx('span', {
-                    children: `${Math.round((updateData.progress || 0) * 100)}%`
-                  })
-                ]
-              }),
-              jsx('div', {
-                className: 'h-2 w-full overflow-hidden rounded-full bg-(--ui-bg-quinary)',
-                children: jsx('div', {
-                  className: 'h-full rounded-full bg-(--ui-accent) transition-[width] duration-500 ease-out',
-                  style: { width: `${Math.round((updateData.progress || 0) * 100)}%` }
-                })
-              }),
-              updateData.message
-                ? jsx('div', {
-                    className: 'mt-1 text-[11px] text-(--ui-text-secondary)',
-                    children: updateData.message
-                  })
-                : null
-            ]
-          })
-        : null
+      jsx('p', {
+        className: 'mt-3 text-[11px] text-(--ui-text-secondary)',
+        children: t('controls.hint')
+      })
     ]
   });
 
@@ -1351,19 +1313,16 @@ function Page({ ctx }) {
                       children: (() => {
                         const u = updateQuery.data
                         if (!u) return null
-                        if (u.status === 'running')
-                          return `Aggiornamento ${runningVariant === 'rocm' ? 'ROCm' : runningVariant === 'cuda' ? 'CUDA' : 'Vulkan'}… ${Math.round((u.progress || 0) * 100)}%`
                         const vs = updateVariants
                         const fmt = (label, s) => {
                           if (!s || s.error) return null
                           if (s.update_available && s.current && s.latest)
-                            return `${label} ${s.current} → ${s.latest} disponibile`
+                            return `${label} ${s.current} → ${s.latest}`
                           if (s.latest) return `${label} ${s.latest}`
                           return null
                         }
                         const parts = [fmt('Vulkan', vs.vulkan), fmt('ROCm', vs.rocm), fmt('CUDA', vs.cuda)]
                         if (parts.length) return parts.filter(Boolean).join(' · ')
-                        if (u.error) return `Versione: ${u.error}`
                         return null
                       })()
                     })
@@ -1442,14 +1401,14 @@ function Page({ ctx }) {
           jsxs('section', {
             className: sectionCls,
             children: [
-              jsx('h2', { className: `${sectionTitleCls} mb-3`, children: 'Benchmark' }),
+              jsx('h2', { className: `${sectionTitleCls} mb-3`, children: t('bench.header') }),
               jsxs('div', {
                 className: 'flex flex-wrap items-end gap-3',
                 children: [
                   jsxs('label', {
                     className: 'flex flex-col gap-1 text-xs text-(--ui-text-secondary)',
                     children: [
-                      jsx('span', { children: 'Modello' }),
+                      jsx('span', { children: t('bench.model') }),
                       jsx(MiniSelect, {
                         value: benchModel || (models[0] && models[0].id) || '',
                         disabled: !!benchBusy,
@@ -1461,7 +1420,7 @@ function Page({ ctx }) {
                   jsxs('label', {
                     className: 'flex flex-col gap-1 text-xs text-(--ui-text-secondary)',
                     children: [
-                      jsx('span', { children: 'Modalita' }),
+                      jsx('span', { children: t('bench.mode') }),
                       jsx(MiniSelect, {
                         value: benchMode,
                         disabled: !!benchBusy,
@@ -1469,7 +1428,7 @@ function Page({ ctx }) {
                         options: [
                           { value: 'generation', label: 'generation (tok/s)' },
                           { value: 'prefill', label: 'prefill (tok/s)' },
-                          { value: 'both', label: 'entrambi' },
+                          { value: 'both', label: t('bench.mode.both') },
                         ],
                       }),
                     ],
@@ -1478,7 +1437,7 @@ function Page({ ctx }) {
                     ? jsxs('label', {
                         className: 'flex flex-col gap-1 text-xs text-(--ui-text-secondary)',
                         children: [
-                          jsx('span', { children: 'Prompt tok' }),
+                          jsx('span', { children: t('bench.promptTokens') }),
                           jsx('input', {
                             type: 'number', min: 16, max: 65536, value: benchPromptTokens,
                             disabled: !!benchBusy,
@@ -1492,7 +1451,7 @@ function Page({ ctx }) {
                     ? jsxs('label', {
                         className: 'flex flex-col gap-1 text-xs text-(--ui-text-secondary)',
                         children: [
-                          jsx('span', { children: 'Output tok' }),
+                          jsx('span', { children: t('bench.outputTokens') }),
                           jsx('input', {
                             type: 'number', min: 1, max: 4096, value: benchOutputTokens,
                             disabled: !!benchBusy,
@@ -1505,7 +1464,7 @@ function Page({ ctx }) {
                   jsxs('label', {
                     className: 'flex flex-col gap-1 text-xs text-(--ui-text-secondary)',
                     children: [
-                      jsx('span', { children: 'Run' }),
+                      jsx('span', { children: t('bench.runs') }),
                       jsx('input', {
                         type: 'number', min: 1, max: 5, value: benchRuns,
                         disabled: !!benchBusy,
@@ -1519,7 +1478,7 @@ function Page({ ctx }) {
                     disabled: !!benchBusy,
                     onClick: runBench,
                     className: actionBtnCls,
-                    children: benchBusy ? 'Benchmark in corso…' : 'Avvia benchmark',
+                    children: benchBusy ? t('bench.running') : t('bench.run'),
                   }),
                 ],
               }),
@@ -1533,12 +1492,12 @@ function Page({ ctx }) {
                           jsx('thead', {
                             children: jsx('tr', {
                               children: [
-                                jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: 'Modalita' }),
-                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'Prompt tok' }),
-                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'Output tok' }),
-                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'TTFT s' }),
-                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'Tot s' }),
-                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'tok/s' }),
+                                jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: t('bench.col.mode') }),
+                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.prompt') }),
+                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.output') }),
+                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.ttft') }),
+                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.total') }),
+                                jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.tps') }),
                               ],
                             }),
                           }),
@@ -1567,7 +1526,7 @@ function Page({ ctx }) {
                 children: [
                   jsx('div', {
                     className: 'mb-1 text-[11px] font-medium text-(--ui-text-secondary)',
-                    children: 'Classifica (miglior risultato per modello)',
+                    children: t('bench.board'),
                   }),
                   jsx('div', {
                     className: 'overflow-x-auto',
@@ -1578,11 +1537,11 @@ function Page({ ctx }) {
                           children: jsx('tr', {
                             children: [
                               jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: '#' }),
-                              jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: 'Modello' }),
-                              jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'Gen tok/s' }),
-                              jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: 'Prefill tok/s' }),
-                              jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: 'Server' }),
-                              jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: 'Preset' }),
+                              jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: t('bench.col.model') }),
+                              jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.gen') }),
+                              jsx('th', { className: 'px-2 py-1 text-center text-(--ui-text-secondary) font-medium', children: t('bench.col.prefill') }),
+                              jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: t('bench.col.server') }),
+                              jsx('th', { className: 'px-2 py-1 text-left text-(--ui-text-secondary) font-medium', children: t('bench.col.preset') }),
                             ],
                           }),
                         }),
@@ -1626,7 +1585,7 @@ function Page({ ctx }) {
                   children: [
                     jsx('div', {
                       className: 'mb-1 text-[11px] font-medium text-(--ui-text-secondary)',
-                      children: 'Ultime sessioni',
+                      children: t('bench.recent'),
                     }),
                     jsx('ul', {
                       className: 'space-y-1 text-[11px] text-(--ui-text-secondary)',
