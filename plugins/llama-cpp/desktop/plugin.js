@@ -78,7 +78,7 @@ function variantLabel(b) {
 const REPO_CUDA_URL = 'https://github.com/ggml-org/llama.cpp/releases'
 const REPO_VULKAN_URL = 'https://github.com/ggml-org/llama.cpp/releases'
 // Link ROCm: build ROCm/HIP ufficiale, stessa pagina release ggml-org.
-const REPO_ROCM_URL = 'https://github.com/ggml-org/llama.cpp/releases'
+const REPO_ROCM_URL = 'https://github.com/lemonade-sdk/llamacpp-rocm'
 
 const LOCALES = {
   en: {
@@ -90,7 +90,7 @@ const LOCALES = {
     'server.backendFromConfig': 'backend (from config)',
     'link.cuda': 'CUDA',
     'link.vulkan': 'Vulkan',
-    'link.rocm': 'ROCm (HIP) builds',
+    'link.rocm': 'ROCm (llamacpp-rocm) builds',
     'system.header': 'System',
     'system.unavailable': 'System info not available on this backend.',
     'system.os': 'OS',
@@ -171,7 +171,7 @@ const LOCALES = {
     'controls.updateAvailable': 'update available',
     'controls.active': 'active',
     'controls.desc.vulkan': 'Vulkan GPU — AMD, Intel, NVIDIA — source: ggml-org/llama.cpp',
-    'controls.desc.rocm': 'AMD RDNA3 GPU (RX 7000, e.g. 7900 XTX) — official ROCm/HIP build, source: ggml-org/llama.cpp',
+    'controls.desc.rocm': 'AMD RDNA3 GPU (RX 7000, e.g. 7900 XTX) — ROCm build from lemonade-sdk/llamacpp-rocm',
     'controls.desc.cuda': 'NVIDIA GPU — source: ggml-org/llama.cpp',
     'bench.header': 'Benchmark',
     'bench.model': 'Model',
@@ -196,7 +196,25 @@ const LOCALES = {
     'bench.col.prefill': 'Prefill tok/s',
     'bench.col.server': 'Server',
     'bench.col.preset': 'Preset',
-    'bench.recent': 'Recent sessions'
+    'bench.recent': 'Recent sessions',
+    'controls.restart': 'Restart',
+    'controls.stop': 'Stop',
+    'controls.update': 'Update',
+    'controls.updating': 'Updating…',
+    'controls.upToDate': 'Already up to date',
+    'controls.restore': 'Restore',
+    'controls.restoreHint': 'Reactivate the previous installed build of this variant',
+    'toast.updateStarted': 'Update started',
+    'builds.select': 'Use',
+    'builds.selectNoVersion': 'No version number: cannot be activated',
+    'builds.selectNoPackage': 'Package removed from registry: cannot be activated',
+    'builds.delete': 'Delete',
+    'builds.confirm.delete': 'Delete this build? It will be removed from the store.',
+    'builds.toast.selected': 'Build selected',
+    'builds.toast.deleted': 'Build deleted',
+    'builds.error.select': 'Failed to select build',
+    'builds.error.delete': 'Failed to delete build',
+    'builds.unverified': 'not verified'
   },
   it: {
     subtitle: 'Server di backend, info di sistema e preset per modello',
@@ -207,7 +225,7 @@ const LOCALES = {
     'server.backendFromConfig': 'backend (da config)',
     'link.cuda': 'CUDA',
     'link.vulkan': 'Vulkan',
-    'link.rocm': 'Build ROCm (HIP)',
+    'link.rocm': 'Build ROCm (llamacpp-rocm)',
     'system.header': 'Sistema',
     'system.unavailable': 'Info di sistema non disponibili su questo backend.',
     'system.os': 'Sistema operativo',
@@ -288,7 +306,7 @@ const LOCALES = {
     'controls.updateAvailable': 'aggiornamento disponibile',
     'controls.active': 'attivo',
     'controls.desc.vulkan': 'GPU Vulkan — AMD, Intel, NVIDIA — sorgente: ggml-org/llama.cpp',
-    'controls.desc.rocm': 'GPU AMD RDNA3 (RX 7000, es. 7900 XTX) — build ROCm/HIP ufficiale, sorgente: ggml-org/llama.cpp',
+    'controls.desc.rocm': 'GPU AMD RDNA3 (RX 7000, es. 7900 XTX) — build ROCm da lemonade-sdk/llamacpp-rocm',
     'controls.desc.cuda': 'GPU NVIDIA — sorgente: ggml-org/llama.cpp',
     'bench.header': 'Benchmark',
     'bench.model': 'Modello',
@@ -313,7 +331,25 @@ const LOCALES = {
     'bench.col.prefill': 'Prefill tok/s',
     'bench.col.server': 'Server',
     'bench.col.preset': 'Preset',
-    'bench.recent': 'Ultime sessioni'
+    'bench.recent': 'Ultime sessioni',
+    'controls.restart': 'Riavvia',
+    'controls.stop': 'Stop',
+    'controls.update': 'Aggiorna',
+    'controls.updating': 'Aggiornamento…',
+    'controls.upToDate': 'Già aggiornata',
+    'controls.restore': 'Ripristina',
+    'controls.restoreHint': 'Riattiva la build precedente installata di questa variante',
+    'toast.updateStarted': 'Aggiornamento avviato',
+    'builds.select': 'Usa',
+    'builds.selectNoVersion': 'Senza numero di versione: non attivabile',
+    'builds.selectNoPackage': 'Package rimosso dal registro: non attivabile',
+    'builds.delete': 'Elimina',
+    'builds.confirm.delete': 'Eliminare questa build? Verrà rimossa dallo store.',
+    'builds.toast.selected': 'Build selezionata',
+    'builds.toast.deleted': 'Build eliminata',
+    'builds.error.select': 'Errore nella selezione della build',
+    'builds.error.delete': "Errore nell'eliminazione della build",
+    'builds.unverified': 'non verificata'
   }
 }
 
@@ -424,7 +460,8 @@ function Page({ ctx }) {
   const updateQuery = useQuery({
     queryKey: ['llama-cpp', 'update'],
     queryFn: () => ctx.rest('/update'),
-    refetchInterval: 30000
+    refetchInterval: (query) =>
+      query.state.data && query.state.data.status === 'running' ? 2000 : 30000
   })
 
   const modelsQuery = useQuery({
@@ -481,6 +518,34 @@ function Page({ ctx }) {
   }
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['llama-cpp'] })
+
+  const restartServer = async () => {
+    if (busy) return
+    setBusy({ kind: 'restart' })
+    try {
+      await ctx.rest('/restart', { method: 'POST' })
+      host.notify({ kind: 'info', message: 'Server restarting...' })
+      invalidate()
+    } catch (err) {
+      host.notify({ kind: 'error', message: apiError(err) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const stopServer = async () => {
+    if (busy) return
+    setBusy({ kind: 'stop' })
+    try {
+      await ctx.rest('/stop', { method: 'POST' })
+      host.notify({ kind: 'info', message: 'Server stopped' })
+      invalidate()
+    } catch (err) {
+      host.notify({ kind: 'error', message: apiError(err) })
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const runLoadUnload = async (kind, model) => {
     if (busy) return
@@ -553,6 +618,20 @@ function Page({ ctx }) {
   const updateData = updateQuery.data || null
   const updateVariants = (updateData && updateData.variants) || {}
   const gpu = (updateData && updateData.gpu) || null
+  const runningVariant = updateData && updateData.status === 'running' ? updateData.variant : null
+
+  // Build installate: servono al rollback (stessa variante, build precedente).
+  const builds = (buildsQuery.data && buildsQuery.data.builds) || []
+  const activeKey = updateData && updateData.active_key
+  const activeVariant = activeKey ? updateVariants[activeKey] : null
+  const activeBuild = activeVariant && activeVariant.current
+    ? Number(String(activeVariant.current).replace('b', '')) : null
+  const restoreTarget = activeKey && activeBuild != null
+    ? builds
+        .filter((b) => b.variant === activeKey && !b.active && b.build)
+        .sort((a, b) => Number(b.build) - Number(a.build))
+        .find((b) => Number(b.build) < activeBuild && b.selectable !== false) || null
+    : null
 
   // Ogni backend ha il suo riquadro (nome, descrizione, versione): sola
   // lettura. Stop/restart e installazioni sono nel core (Impostazioni →
@@ -578,6 +657,58 @@ function Page({ ctx }) {
     ? (updateVariants[activeBadVariant.key] || {}).note || ''
     : ''
 
+  const updateServer = async (variant) => {
+    if (busy) return
+    setBusy({ kind: 'update', variant })
+    try {
+      await ctx.rest('/update', { method: 'POST', body: { variant } })
+      host.notify({ kind: 'info', message: t('toast.updateStarted') })
+    } catch (err) {
+      host.notify({ kind: 'error', message: apiError(err) })
+      setBusy(null)
+    }
+  }
+
+  useEffect(() => {
+    const u = updateQuery.data
+    if (!u || (u.status !== 'done' && u.status !== 'error')) return
+    if (busy && busy.kind === 'update') {
+      host.notify({ kind: u.status === 'done' ? 'success' : 'error', message: u.message || '' })
+      setBusy(null)
+      invalidate()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateQuery.data])
+
+  const selectBuild = async (entry) => {
+    if (busy) return
+    setBusy({ kind: 'selectBuild', entry })
+    try {
+      await ctx.rest('/builds/select', { method: 'POST', body: { entry } })
+      host.notify({ kind: 'success', message: t('builds.toast.selected') })
+    } catch (err) {
+      host.notify({ kind: 'error', message: `${t('builds.error.select')}: ${apiError(err)}` })
+    } finally {
+      setBusy(null)
+      invalidate()
+    }
+  }
+
+  const deleteBuild = async (entry) => {
+    if (busy) return
+    if (typeof window !== 'undefined' && !window.confirm(t('builds.confirm.delete'))) return
+    setBusy({ kind: 'deleteBuild', entry })
+    try {
+      await ctx.rest('/builds/delete', { method: 'POST', body: { entry } })
+      host.notify({ kind: 'success', message: t('builds.toast.deleted') })
+    } catch (err) {
+      host.notify({ kind: 'error', message: `${t('builds.error.delete')}: ${apiError(err)}` })
+    } finally {
+      setBusy(null)
+      invalidate()
+    }
+  }
+
   const controlSection = jsxs('section', {
     className: sectionCls,
     children: [
@@ -585,7 +716,7 @@ function Page({ ctx }) {
       gpu
         ? jsx('div', {
             className: 'mb-3 text-xs text-(--ui-text-secondary)',
-            children: `${t('controls.gpu')}: ${gpu.name || t('controls.unknown')}${gpu.vendor ? ` · ${gpu.vendor}` : ''}`
+            children: `${t('controls.gpu')}: ${gpu.name || t('controls.unknown')}${gpu.vendor ? ` · ${gpu.vendor}` : ''}${gpu.arch ? ` · ${gpu.arch}` : ''}`
           })
         : null,
       activeBadVariant
@@ -627,14 +758,60 @@ function Page({ ctx }) {
                     ? jsx('div', { className: 'text-[11px] text-(--ui-text-secondary)', children: v.note })
                     : null
                 ]
+              }),
+              jsxs('div', {
+                className: 'flex shrink-0 items-center gap-2',
+                children: [
+                  jsx(Tip, {
+                    label: v.suitable === false
+                      ? (v.note || t('controls.notSuitable'))
+                      : (!v.update_available ? t('controls.upToDate') : t('controls.update')),
+                    children: jsx('button', {
+                      type: 'button',
+                      disabled: !!busy || v.suitable === false || !v.update_available,
+                      onClick: () => updateServer(vm.key),
+                      className: actionBtnCls,
+                      children: runningVariant === vm.key
+                        ? t('controls.updating')
+                        : t('controls.update')
+                    })
+                  }),
+                  active && restoreTarget
+                    ? jsx(Tip, {
+                        label: t('controls.restoreHint'),
+                        children: jsx('button', {
+                          type: 'button',
+                          disabled: !!busy,
+                          onClick: () => void selectBuild(restoreTarget.entry),
+                          className: `${actionBtnCls} text-amber-500`,
+                          children: busy && busy.kind === 'selectBuild' ? '…' : t('controls.restore')
+                        })
+                      })
+                    : null
+                ]
               })
             ]
           })
         })
       }),
-      jsx('p', {
-        className: 'mt-3 text-[11px] text-(--ui-text-secondary)',
-        children: t('controls.hint')
+      jsxs('div', {
+        className: 'mt-3 flex flex-wrap gap-2',
+        children: [
+          jsx('button', {
+            type: 'button',
+            disabled: !!busy,
+            onClick: restartServer,
+            className: actionBtnCls,
+            children: busy && busy.kind === 'restart' ? '…' : t('controls.restart')
+          }),
+          jsx('button', {
+            type: 'button',
+            disabled: !!busy,
+            onClick: stopServer,
+            className: `${actionBtnCls} text-red-500`,
+            children: busy && busy.kind === 'stop' ? '…' : t('controls.stop')
+          })
+        ]
       })
     ]
   });
@@ -966,8 +1143,11 @@ function Page({ ctx }) {
   )
 
   // ---- runtime builds section --------------------------------------------
-  const builds = (buildsQuery.data && buildsQuery.data.builds) || []
   const buildRow = (b) => {
+    const rowBusy = !!busy && busy.entry === b.entry
+    // Le build custom (senza numero di versione) non sono attivabili dal PM;
+    // le build il cui package non esiste piu' nel registro neppure.
+    const selectable = !b.active && b.selectable !== false && !!b.build && !!b.platform
     const name = variantLabel(b)
     const label = b.build ? `${name} b${b.build}` : name
     const meta = [
@@ -1003,6 +1183,12 @@ function Page({ ctx }) {
                       className: 'shrink-0 text-[10px] font-medium text-amber-500',
                       children: t('builds.deprecated')
                     })
+                  : null,
+                b.verified === false
+                  ? jsx('span', {
+                      className: 'shrink-0 text-[10px] font-medium text-red-500',
+                      children: t('builds.unverified')
+                    })
                   : null
               ]
             }),
@@ -1013,10 +1199,39 @@ function Page({ ctx }) {
                 })
               : null
           ]
-        })
+        }),
+        !b.active
+          ? jsxs('div', {
+              className: 'flex shrink-0 items-center gap-2',
+              children: [
+                jsx(Tip, {
+                  label: b.selectable === false
+                    ? t('builds.selectNoPackage')
+                    : (selectable ? t('builds.select') : t('builds.selectNoVersion')),
+                  children: jsx('button', {
+                    type: 'button',
+                    disabled: !selectable || !!busy,
+                    onClick: () => void selectBuild(b.entry),
+                    className: actionBtnCls,
+                    children:
+                      rowBusy && busy.kind === 'selectBuild' ? '…' : t('builds.select')
+                  })
+                }),
+                jsx('button', {
+                  type: 'button',
+                  disabled: !!busy,
+                  onClick: () => void deleteBuild(b.entry),
+                  className: `${actionBtnCls} text-red-500`,
+                  children:
+                    rowBusy && busy.kind === 'deleteBuild' ? '…' : t('builds.delete')
+                })
+              ]
+            })
+          : null
       ]
     })
   }
+
   const buildsSection = jsxs('section', {
     className: sectionCls,
     children: [

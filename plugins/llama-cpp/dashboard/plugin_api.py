@@ -10,17 +10,22 @@ Routes:
                    window override, modello attivo e reload del router
     POST /load     {model} -> load sul router (202, async)
     POST /unload   {model} -> unload sul router (202, async)
-    GET  /update   sola lettura: build installata + ultime versioni note per
-                   le fonti ufficiali ggml-org (Vulkan, CUDA, ROCm/HIP);
-                   nessuna installazione, nessun lifecycle
-    GET  /builds   build llama.cpp installate nello store (sola lettura)
+    POST /stop     ferma il server gestito
+    POST /restart  riavvia il server gestito (background)
+    GET  /update   stato + ultime versioni disponibili per le fonti
+                   (Vulkan, CUDA e ROCm: build ufficiali ggml-org)
+    POST /update   {variant: "vulkan" | "cuda" | "rocm"} — aggiorna la
+                   singola fonte (PM: re-pin lockfile + download +
+                   verifica); riavvia il server solo se la fonte
+                   aggiornata e' il backend in uso
 
 Nessuna credenziale (api_key del router) e' mai restituita al frontend:
-le chiamate al router avvengono lato server. Il plugin non chiama alcuna
-route interna del core: stop/start/restart e installazioni del runtime
-sono nel core (Impostazioni -> Modelli locali). Le versioni si leggono
-dalle release pubbliche ggml-org/llama.cpp. Selezione/rimozione build:
-in attesa di una route pubblica del core (issue upstream).
+le chiamate al router avvengono lato server.
+
+L'aggiornamento usa le medesime fonti del package manager Hermes
+(release di ggml-org/llama.cpp per tutte le build installabili, inclusa
+la build ROCm Windows ufficiale; le build ROCm ottimizzate per AMD
+restano raggiungibili dal link "build ottimizzate" della pagina).
 """
 
 from __future__ import annotations
@@ -29,13 +34,11 @@ import asyncio
 import json
 import logging
 import os
-import platform
 import re
+import shutil
 import sys
 import threading
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
@@ -47,10 +50,26 @@ _PLUGIN_DIR = Path(__file__).resolve().parent.parent
 if str(_PLUGIN_DIR) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_DIR))
 
+
+def _ensure_github_token() -> None:
+    """Usa il token di `gh` (autenticato sul PC) per le API GitHub del PM.
+
+    Senza token l'API e' anonima (60 richieste/ora) e i controlli di
+    aggiornamento la esauriscono in pochi minuti (HTTP 403 rate limit)."""
+    if os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"):
+        return
+    try:
+        import subprocess
+        r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=10)
+        tok = (r.stdout or "").strip()
+        if r.returncode == 0 and tok:
+            os.environ["GH_TOKEN"] = tok
+    except Exception:
+        pass
+
 from llama_cpp_core import (  # noqa: E402
     apply_preset,
     detect_gpu,
-    hermes_home,
     list_models,
     load_model_async,
     read_presets,
@@ -99,37 +118,86 @@ async def post_unload(body: dict):
     return JSONResponse(result, status_code=200 if result.get("ok") else 400)
 
 
+# ------------------------------------------------------------------ lifecycle
+@router.post("/stop")
+async def stop_server():
+    """Stop the managed llama.cpp server (process-local supervisor)."""
+    try:
+        from hermes_cli.local_runtime import bootstrap
+        bootstrap.shutdown_local_runtime()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"stop failed: {exc}")
+    return JSONResponse({"ok": True})
+
+
+@router.post("/restart")
+async def restart_server():
+    """Restart the managed llama.cpp server (runs in the background: the
+    router can take up to ~2 min to become healthy after a cold boot)."""
+
+    def _run():
+        try:
+            from hermes_cli.local_runtime import bootstrap
+            from hermes_cli.config import load_config
+            bootstrap.shutdown_local_runtime()
+            bootstrap.ensure_local_runtime(load_config(), force=True)
+        except Exception as exc:
+            logger.warning("llama-cpp restart failed: %s", exc)
+
+    threading.Thread(target=_run, daemon=True, name="llama-cpp-restart").start()
+    return JSONResponse({"ok": True})
+
+
 # ------------------------------------------------------------------ update
 #
-# Sola lettura: le ultime versioni note per tre fonti, tutte build
-# ufficiali ggml-org/llama.cpp:
-#   - "vulkan" -> llamacpp-vulkan (backend AMD/Intel/NVIDIA)
-#   - "cuda"   -> llamacpp-cuda (build NVIDIA, sm_75+)
-#   - "rocm"   -> llamacpp-hip (build ROCm/HIP ufficiale per AMD)
-# Installazioni, stop/restart sono operazioni del core (Impostazioni ->
-# Modelli locali); qui si leggono soltanto le release pubbliche GitHub.
+# Stato condiviso della procedura di aggiornamento (visibile da GET /update,
+# aggiornato dal thread di POST /update). Tre fonti aggiornabili:
+#   - "vulkan" -> llamacpp-vulkan (ggml-org/llama.cpp, backend AMD/Intel)
+#   - "cuda"   -> llamacpp-cuda (ggml-org/llama.cpp, build NVIDIA)
+#   - "rocm"   -> llamacpp-hip (ggml-org/llama.cpp, build ROCm per AMD)
+# Le versioni vengono sempre risolte dal package manager Hermes
+# (pm.update.resolve_package).
 
+# Nota: "rocm" punta alla build hip (llamacpp-hip, ggml-org/llama.cpp),
+# la fonte ROCm ufficiale e verificata su questa macchina (7900 XTX).
 _VARIANTS = {
     "vulkan": "llamacpp-vulkan",
     "cuda": "llamacpp-cuda",
-    "rocm": "llamacpp-hip",
+    "rocm": "llamacpp-rocm-lemonade",
 }
 
-# Package PM -> chiave variante. Include le build legacy non piu' proposte
-# (llamacpp-rocm-lemonade) per etichettare correttamente le entry store vecchie.
+# Package PM -> chiave variante. Include anche le build che non sono piu'
+# aggiornabili dal pannello (llamacpp-hip, build ROCm ufficiale ggml-org)
+# ma che possono essere installate nello store e usate dal server.
 _PACKAGE_TO_KEY = {
     "llamacpp-vulkan": "vulkan",
     "llamacpp-cuda": "cuda",
-    "llamacpp-hip": "rocm",
     "llamacpp-rocm-lemonade": "rocm",
+    "llamacpp-hip": "rocm",
 }
 
-# Fonti dei build per variante (mostrate nel pannello update): tutte le build
-# installabili sono release ufficiali ggml-org/llama.cpp, ROCm inclusa.
+# Backend riconoscibili dal nome variant delle entry store (llamacpp-<x>-...):
+# servono per capire se una build selezionata cambia il backend del runtime.
+_KNOWN_BACKENDS = {"cuda", "vulkan", "metal", "hip", "cpu", "rocm-lemonade"}
+# variant entry store -> chiave del backend nel config (local_runtime.backend).
+_BACKEND_KEYS = {
+    "cuda": "cuda",
+    "vulkan": "vulkan",
+    "metal": "metal",
+    "hip": "hip",
+    "cpu": "cpu",
+    # Lemonade e' una build HIP/ROCm: il runtime la espone come backend suo.
+    "rocm-lemonade": "rocm-lemonade",
+}
+
+# Fonti dei build per variante (mostrate nel pannello update). Vulkan e CUDA
+# sono build ufficiali ggml-org/llama.cpp; ROCm è la build Lemonade sul repo
+# lemonade-sdk/llamacpp-rocm (scelta esplicita dell'utente: non rimappare
+# su ggml-org).
 _VARIANT_SOURCE = {
     "vulkan": "ggml-org/llama.cpp (Vulkan)",
     "cuda": "ggml-org/llama.cpp (CUDA)",
-    "rocm": "ggml-org/llama.cpp (ROCm)",
+    "rocm": "lemonade-sdk/llamacpp-rocm (ROCm)",
 }
 _VARIANT_DISPLAY = {
     "vulkan": "Vulkan",
@@ -153,21 +221,23 @@ def _display_variant(raw: str) -> str:
 def _display_name(raw: str) -> str:
     return _VARIANT_DISPLAY.get(_display_variant(raw), raw)
 
+_HERMES_HOME = _PLUGIN_DIR.parent.parent
 
-# Cache del resolve versioni (sola lettura): non interroghiamo l'upstream
-# ad ogni poll. La UI mostra le versioni; installazioni e lifecycle sono
-# operazioni del core, non del plugin.
-_resolve_lock = threading.Lock()
-_resolve_cache: dict = {"ts": 0.0, "data": None}
-_RESOLVE_TTL = 120.0    # secondi
+_update_lock = threading.Lock()
+_update_state = {
+    "status": "idle",
+    "message": None,
+    "progress": 0.0,
+    "target": None,
+    "variant": None,
+    "check": None,
+    "resolved_at": 0.0,
+}
+_RESOLVE_TTL = 120.0    # secondi: non interroghiamo l'upstream ad ogni poll
 
 
 def _server_json_path() -> Path:
-    return hermes_home() / "runtimes" / "llamacpp" / "server.json"
-
-
-def _store_root() -> Path:
-    return hermes_home() / "tools"
+    return _HERMES_HOME / "runtimes" / "llamacpp" / "server.json"
 
 
 def _active_variant() -> tuple[str, str | None]:
@@ -188,137 +258,35 @@ def _active_variant() -> tuple[str, str | None]:
     return f"llamacpp-{m.group(1)}", m.group(2)
 
 
-def _platform_family() -> str | None:
-    if os.name == "nt":
-        return "win32"
-    if sys.platform.startswith("linux"):
-        return "linux"
-    return None
-
-
-def _platform_target() -> str | None:
-    family = _platform_family()
-    if family is None:
-        return None
-    arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
-    return f"{family}-{arch}"
-
-
-# Sottostringhe platform/backend negli asset pubblici (ggml-org/llama.cpp):
-# i nomi sono del tipo llama-b12546-bin-win-vulkan-x64.zip; il numero di
-# versione cambia, la sottostringa no. Gli archivi cudart ausiliari non
-# contano (prefisso llama-).
-_GH_ASSET_PREFIX = {
-    "vulkan": {"win32": "win-vulkan-", "linux": "ubuntu-vulkan-"},
-    "cuda": {"win32": "win-cuda-", "linux": "ubuntu-cuda-"},
-    "rocm": {"win32": "win-rocm-", "linux": "ubuntu-rocm-"},
-}
-_GH_REPO = "ggml-org/llama.cpp"
-_GH_LATEST_TTL = 600.0  # 10 min: l'API anonima ha 60 richieste/ora
-_gh_latest_cache: dict = {"ts": 0.0, "data": None}
-
-
-def _gh_latest_release() -> dict:
-    """Ultima release build (tag ``bNNNNN``) di ggml-org/llama.cpp, in cache.
-
-    ``releases/latest`` non va bene: il repo pubblica anche release non-build
-    (es. v1.0.0) che GitHub puo' marcare come "latest". Si scorre l'elenco
-    delle release e si prende il tag build piu' alto.
-
-    Usa un token GitHub solo se l'utente lo ha gia' impostato nell'ambiente
-    (GH_TOKEN/GITHUB_TOKEN): il plugin non lo richiede a `gh` ne' lo scrive.
-    """
-    now = time.monotonic()
-    if _gh_latest_cache["data"] is not None and now - _gh_latest_cache["ts"] <= _GH_LATEST_TTL:
-        return _gh_latest_cache["data"]
-    headers = {"Accept": "application/vnd.github+json",
-               "User-Agent": "hermes-llama-cpp-plugin"}
-    tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    if tok:
-        headers["Authorization"] = f"Bearer {tok}"
-    req = urllib.request.Request(
-        f"https://api.github.com/repos/{_GH_REPO}/releases?per_page=30", headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            releases = json.loads(r.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        if exc.code in (403, 429):
-            raise RuntimeError(
-                "GitHub rate limit (anonymous: 60 req/h) — set GH_TOKEN or retry later")
-        raise RuntimeError(f"GitHub HTTP {exc.code}")
-    best: tuple[int, dict] | None = None
-    for rel in releases if isinstance(releases, list) else []:
-        tag = str(rel.get("tag_name") or "")
-        m = re.fullmatch(r"b(\d+)", tag)
-        if not m or rel.get("draft"):
-            continue
-        num = int(m.group(1))
-        if best is None or num > best[0]:
-            best = (num, rel)
-    if best is None:
-        raise RuntimeError("no build release (bNNNNN) found on GitHub")
-    rel = best[1]
-    out = {"tag": str(rel.get("tag_name") or ""),
-           "assets": [str(a.get("name") or "") for a in (rel.get("assets") or [])]}
-    _gh_latest_cache.update(ts=now, data=out)
-    return out
-
-
-def _installed_build(pkg_name: str) -> str | None:
-    """Build installata di un package nello store (sola lettura directory)."""
-    target = _platform_target()
-    if target is None:
-        return None
-    root = _store_root()
-    best: int | None = None
-    try:
-        names = os.listdir(root)
-    except OSError:
-        return None
-    for name in names:
-        if not name.startswith(pkg_name + "-"):
-            continue
-        info = _parse_store_entry(name)
-        if not info or not info["build"] or info["platform"] != target:
-            continue
-        if f"llamacpp-{info['variant']}" != pkg_name:
-            continue
-        try:
-            num = int(info["build"])
-        except ValueError:
-            continue
-        if best is None or num > best:
-            best = num
-    return str(best) if best is not None else None
-
-
 def _resolve_variant(pkg_name: str, current: str | None) -> dict:
-    """Ultima versione disponibile per una fonte (release pubbliche GitHub)."""
-    key = _variant_key(pkg_name)
-    family = _platform_family()
-    prefix = (_GH_ASSET_PREFIX.get(key or "") or {}).get(family or "")
-    if not prefix:
-        return {"ok": False, "error": "no build published for this platform"}
+    """Ultima versione disponibile per un package PM (nessuna cache)."""
+    from pm import Lockfile, get_package, paths as pm_paths
+    from pm.store import ALL_TARGETS
+    from pm.update import resolve_package
+
     try:
-        release = _gh_latest_release()
+        package = get_package(pkg_name)
     except Exception as exc:
-        return {"ok": False, "error": f"check failed: {exc}"}
-    tag = release["tag"]
-    version = tag[1:] if tag.startswith("b") else tag
-    if not version:
-        return {"ok": False, "error": "GitHub release without a valid tag"}
-    if not any(n.startswith("llama-") and prefix in n for n in release["assets"]):
-        return {"ok": False,
-                "error": f"release {tag} does not publish a {family} build for this source"}
-    installed = current or _installed_build(pkg_name)
+        return {"ok": False, "error": f"package non trovato: {exc}"}
+    lockfile = Lockfile(pm_paths.lockfile_path())
+    targets = [t for t in ALL_TARGETS if package.missing_reason(t) is None]
+    if not targets:
+        return {"ok": False, "error": "nessun target compatibile con questa macchina"}
+    try:
+        decision = resolve_package(
+            package, targets, lockfile.version(pkg_name),
+            artifacts=lockfile.pinned_artifacts(pkg_name),
+        )
+    except Exception as exc:
+        return {"ok": False, "error": f"check fallito: {exc}"}
     return {
         "ok": True,
         "package": pkg_name,
-        "current": installed,
-        "pinned": None,
-        "latest": version,
-        "update_available": installed != version,
-        "reason": "" if installed else "not installed",
+        "current": current,
+        "pinned": lockfile.version(pkg_name),
+        "latest": decision.version,
+        "update_available": bool(decision.changed),
+        "reason": decision.reason or "",
     }
 
 
@@ -334,7 +302,7 @@ def _variant_key(pkg_name: str | None) -> str | None:
 
 
 def _compute_tuple(cc) -> tuple[int, int] | None:
-    """"6.1" -> (6, 1); None se manca o non e' numerico."""
+    """\"6.1\" -> (6, 1); None se manca o non e' numerico."""
     try:
         major, _, minor = str(cc).strip().partition(".")
         return (int(major), int(minor or 0))
@@ -342,42 +310,39 @@ def _compute_tuple(cc) -> tuple[int, int] | None:
         return None
 
 
-# Le build CUDA ufficiali che il PM propone sono della linea 13.x: CUDA Toolkit
-# 13.0 ha rimosso Maxwell, Pascal e Volta (architetture pre-Turing), quindi
-# le GPU devono essere sm_75+. Una GTX 1060 (sm_61) non puo' eseguirle: il
-# server muore al primo forward con "no kernel image is available".
-_CUDA_MIN_COMPUTE = (7, 5)
-
-
 def _gpu_requirement(key: str, gpu: dict) -> tuple[bool, str | None]:
     """La variante e' adatta alla GPU rilevata? (suitable, nota per la UI).
 
-    Vulkan lo usa quasi ogni GPU; CUDA richiede una GPU NVIDIA sm_75+ (le
-    build 13.x hanno eliminato Pascal); ROCm richiede una GPU AMD.
-    Le note vanno in colonna "Versione".
+    Vulkan lo usa quasi ogni GPU; CUDA richiede una GPU NVIDIA sm_75+
+    (le build 13.x hanno eliminato Maxwell/Pascal/Volta); ROCm (Lemonade)
+    richiede una GPU AMD con bucket gfx. Le note vanno in colonna
+    "Versione".
     """
     vendor = (gpu or {}).get("vendor")
     name = (gpu or {}).get("name")
     if key == "vulkan":
         if not name:
-            return False, "No GPU detected"
+            return False, "Nessuna GPU rilevata"
         return True, None
     if key == "cuda":
         if vendor != "nvidia":
-            return False, "Requires an NVIDIA GPU"
+            return False, "Richiede una GPU NVIDIA"
         ct = _compute_tuple((gpu or {}).get("compute_capability"))
         if ct is None:
-            return False, "Compute capability not detected (nvidia-smi missing)"
-        if ct < _CUDA_MIN_COMPUTE:
+            return False, "Compute capability non rilevata (nvidia-smi assente)"
+        if ct < (7, 5):
             sigla = str((gpu or {}).get("compute_capability")).replace(".", "")
             return False, (
-                f"Current CUDA builds require sm_75+ (CUDA 13 dropped "
-                f"Maxwell/Pascal/Volta); your GPU is sm_{sigla}"
+                f"Nessuna build CUDA supportata da questa GPU: le build attuali "
+                f"richiedono sm_75+ (CUDA 13 ha eliminato Maxwell/Pascal/Volta), "
+                f"la tua GPU e' sm_{sigla}"
             )
         return True, None
     if key == "rocm":
         if vendor != "amd":
-            return False, "Requires an AMD GPU"
+            return False, "Richiede una GPU AMD"
+        if not (gpu or {}).get("amd_gfx"):
+            return False, "Bucket gfx AMD non rilevato"
         return True, None
     return True, None
 
@@ -385,12 +350,13 @@ def _gpu_requirement(key: str, gpu: dict) -> tuple[bool, str | None]:
 def _variant_note(key: str, gpu: dict) -> str | None:
     """Dettaglio "perche' adatto" mostrato accanto alla versione."""
     if key == "rocm":
-        return "AMD GPU · official ROCm build (HIP)"
+        bucket = (gpu or {}).get("amd_gfx")
+        return f"Lemonade · bucket {bucket}" if bucket else "Lemonade ROCm"
     if key == "cuda":
         cc = (gpu or {}).get("compute_capability")
-        return f"NVIDIA GPU sm_{cc} · CUDA build" if cc else "NVIDIA GPU · CUDA build"
+        return f"GPU NVIDIA sm_{cc.replace('.', '')} · build CUDA" if cc else "GPU NVIDIA · build CUDA"
     if key == "vulkan":
-        return "Vulkan build (AMD/Intel/NVIDIA)"
+        return "build Vulkan (AMD/Intel/NVIDIA)"
     return None
 
 
@@ -398,11 +364,12 @@ def _resolve_all() -> dict:
     """Stato delle fonti aggiornabili (vulkan, cuda, rocm) per la GPU rilevata.
 
     ``current`` e' la build del server in esecuzione (per il backend attivo)
-    o la build installata nello store (per le altre fonti). Le varianti non
+    o il pin installato nel lockfile (per le altre fonti). Le varianti non
     adatte alla GPU del PC sono marcate ``suitable=False`` e non risolvono
     alcuna versione: la UI le mostra disabilitate con la motivazione.
     """
     active_pkg, active_build = _active_variant()
+    _ensure_github_token()
     gpu = detect_gpu()
     variants: dict = {}
     for key, pkg_name in _VARIANTS.items():
@@ -422,28 +389,152 @@ def _resolve_all() -> dict:
             continue
         current = active_build if pkg_name == active_pkg else None
         info = _resolve_variant(pkg_name, current)
+        if info.get("ok") and not current and info.get("pinned"):
+            info["current"] = info["pinned"]
         info["suitable"] = True
         info["note"] = _variant_note(key, gpu)
         variants[key] = info
     return {"active": active_pkg or None, "variants": variants, "gpu": gpu}
 
 
+def _set_state(**kw) -> None:
+    with _update_lock:
+        _update_state.update(kw)
+
+
+def _run_update(variant: str) -> None:
+    """Corpo dell'aggiornamento (thread daemon).
+
+    Stessa sequenza di ``hermes pm update`` per un solo package:
+    resolve -> re-pin del lockfile -> install (download + verifica).
+    Se il package aggiornato e' quello che il server sta eseguendo, il
+    runtime viene riavviato per rileggere il pin; altrimenti la build
+    resta installata e il server continua con il backend attuale.
+    """
+    _ensure_github_token()
+    try:
+        from pm import Lockfile, get_package, paths as pm_paths
+        from pm.store import ALL_TARGETS
+        from pm.update import resolve_package
+        from pm.cli import _pin_artifacts
+
+        pkg_name = _VARIANTS.get(variant, "")
+        if not pkg_name:
+            raise RuntimeError(f"variante sconosciuta: {variant}")
+        # ROCm (Lemonade) esiste solo per GPU AMD: verifica la GPU prima di
+        # scaricare, così l'errore è chiaro e non a metà dell'update.
+        if pkg_name == "llamacpp-rocm-lemonade":
+            gpu = detect_gpu()
+            if gpu.get("vendor") != "amd":
+                raise RuntimeError(
+                    "Nessuna GPU AMD rilevata: Lemonade ROCm non è adatto a questa macchina")
+            if not gpu.get("amd_gfx"):
+                raise RuntimeError("Bucket gfx non rilevato per la GPU AMD")
+        if pkg_name == "llamacpp-cuda":
+            gpu = detect_gpu()
+            ct = _compute_tuple(gpu.get("compute_capability"))
+            if ct is None:
+                raise RuntimeError(
+                    "Compute capability NVIDIA non rilevata (nvidia-smi assente): "
+                    "impossibile verificare la compatibilità della build CUDA")
+            if ct < (7, 5):
+                sigla = str(gpu.get("compute_capability")).replace(".", "")
+                raise RuntimeError(
+                    f"Le build CUDA attuali richiedono sm_75+; la tua GPU e' sm_{sigla}. "
+                    f"Usa Vulkan o riattiva una build gia' installata nello store.")
+        active_pkg, _ = _active_variant()
+        restart = pkg_name == active_pkg
+        package = get_package(pkg_name)
+        lockfile = Lockfile(pm_paths.lockfile_path())
+        targets = [t for t in ALL_TARGETS if package.missing_reason(t) is None]
+        if not targets:
+            raise RuntimeError("nessun target compatibile con questa macchina")
+        _set_state(status="running", variant=variant,
+                   message="Controllo la versione disponibile…",
+                   progress=0.0, target=None)
+        decision = resolve_package(
+            package, targets, lockfile.version(pkg_name),
+            artifacts=lockfile.pinned_artifacts(pkg_name),
+        )
+        if not decision.changed or not decision.version:
+            _set_state(status="done",
+                       message=f"{pkg_name}: già alla versione più recente "
+                               f"(b{decision.version or '?'})")
+            return
+        target = decision.version
+        # ROCm/Lemonade: verifica esplicita che la release pubblichi l'asset
+        # per il bucket gfx della GPU rilevata (non solo che il tag esista).
+        if pkg_name == "llamacpp-rocm-lemonade":
+            from pm.packages import _github_release_digests
+            from pm.store import current_target
+            target_name = current_target()
+            asset = package.fetch_url(str(target), target_name).rsplit("/", 1)[-1]
+            digests = _github_release_digests(
+                "lemonade-sdk/llamacpp-rocm", f"b{target}")
+            if asset not in digests:
+                raise RuntimeError(
+                    f"Lemonade non pubblica una build {gpu.get('amd_gfx')} per "
+                    f"questa GPU (manca {asset} in b{target})")
+        _set_state(target=target, message=f"Scarico b{target}…", progress=0.0)
+
+        artifacts = _pin_artifacts(package, decision, lockfile.pinned_artifacts(pkg_name))
+        lockfile.set_pin(pkg_name, target, artifacts)
+        lockfile.save()
+
+        import pm as pm_mod
+
+        def _progress(stage, done, total, label):
+            frac = (done / total) if total else 0
+            _set_state(progress=min(0.95, 0.05 + 0.9 * frac),
+                       message=label or stage or f"Installo b{target}…")
+
+        def _download(done, total, _ranges):
+            frac = (done / total) if total else 0
+            _set_state(progress=min(0.95, 0.05 + 0.9 * frac),
+                       message=f"Scarico b{target}… {frac:.0%}")
+
+        pm_mod.ensure(pkg_name, explicit=True, verify=True,
+                      progress=_progress, download_progress=_download)
+        if restart:
+            _set_state(progress=0.97, message="Riavvio del server…")
+            from hermes_cli.local_runtime import bootstrap
+            from hermes_cli.config import load_config
+            bootstrap.shutdown_local_runtime()
+            bootstrap.ensure_local_runtime(load_config(), force=True)
+            _set_state(status="done",
+                       message=f"Aggiornato a b{target}: il server sta ripartendo")
+        else:
+            _set_state(status="done",
+                       message=f"Aggiornato a b{target}: build installata, il server "
+                               f"continua con il backend attuale")
+    except Exception as exc:
+        logger.exception("llama-cpp update failed")
+        _set_state(status="error", message=str(exc))
+    finally:
+        _set_state(check=None, resolved_at=0.0)  # forza un resolve fresco
+
+
 @router.get("/update")
 async def update_check():
-    """Sola lettura: build installata + ultime versioni note per le fonti
-    (build ufficiali ggml-org/llama.cpp: Vulkan, CUDA e ROCm/HIP).
-    Il resolve viene interrogato al massimo ogni ``_RESOLVE_TTL`` secondi.
-    Stop/start/restart e installazioni sono operazioni del core
-    (Impostazioni -> Modelli locali); il plugin non le esegue.
+    """Stato dell'aggiornamento + ultime versioni disponibili per le
+    fonti (Vulkan e CUDA: build ufficiali ggml-org; ROCm: build Lemonade,
+    repo lemonade-sdk/llamacpp-rocm). Il resolve viene interrogato al
+    massimo ogni ``_RESOLVE_TTL`` secondi per non martellare l'upstream
+    ad ogni poll.
     """
-    now = time.monotonic()
-    with _resolve_lock:
-        check = _resolve_cache["data"] if now - _resolve_cache["ts"] <= _RESOLVE_TTL else None
+    check = None
+    with _update_lock:
+        if (
+            _update_state["check"] is not None
+            and time.monotonic() - _update_state["resolved_at"] <= _RESOLVE_TTL
+        ):
+            check = _update_state["check"]
     if check is None:
         check = await asyncio.to_thread(_resolve_all)
-        with _resolve_lock:
-            _resolve_cache.update(ts=now, data=check)
+        _set_state(check=check, resolved_at=time.monotonic())
 
+    with _update_lock:
+        state = {k: _update_state[k] for k in ("status", "message", "progress", "target", "variant")}
     variants = {}
     for key, info in (check.get("variants") or {}).items():
         entry = {
@@ -458,18 +549,56 @@ async def update_check():
         if not info.get("ok") and info.get("error"):
             entry["error"] = info["error"]
         variants[key] = entry
-    return JSONResponse({
+    payload: dict = {
+        **state,
         "variants": variants,
         "gpu": check.get("gpu"),
         "active": check.get("active"),
-        "active_key": _variant_key(check.get("active")),
-    })
+        "active_key": None,
+        "package": None,
+        "current": None,
+        "latest": None,
+        "update_available": False,
+    }
+    # Campi in testa = backend attivo (compatibilità col frontend precedente).
+    active_key = _variant_key(check.get("active"))
+    if active_key:
+        payload["active_key"] = active_key
+    if active_key and active_key in variants:
+        payload.update({
+            "package": variants[active_key].get("package"),
+            "current": variants[active_key].get("current"),
+            "latest": variants[active_key].get("latest"),
+            "update_available": variants[active_key].get("update_available"),
+        })
+    return JSONResponse(payload)
+
+
+@router.post("/update")
+async def update_server(body: dict = None):
+    """Aggiorna una singola fonte: ``{variant: "vulkan" | "rocm"}``
+    (omessa = la fonte del backend in uso). Re-pin del lockfile +
+    download verificato (PM), poi riavvio del server solo se la fonte
+    aggiornata e' quella in esecuzione. L'operazione gira in background:
+    lo stato si legge da GET /update (status/progress/message)."""
+    variant = (body or {}).get("variant") or "active"
+    if variant == "active":
+        variant = _variant_key(_active_variant()[0]) or "vulkan"
+    if variant not in _VARIANTS:
+        raise HTTPException(status_code=400,
+                            detail=f"variante sconosciuta: {variant}")
+    with _update_lock:
+        if _update_state["status"] == "running":
+            raise HTTPException(status_code=409, detail="update already running")
+    threading.Thread(target=_run_update, args=(variant,), daemon=True,
+                     name="llama-cpp-update").start()
+    return JSONResponse({"ok": True})
 
 
 # ------------------------------------------------------------------ bench
 
 def _bench_history_path() -> Path:
-    return hermes_home() / "runtimes" / "llamacpp" / "bench.json"
+    return _HERMES_HOME / "runtimes" / "llamacpp" / "bench.json"
 
 
 def _load_bench_history() -> list[dict]:
@@ -583,9 +712,9 @@ def _run_bench(model: str, mode: str, prompt_tokens: int, output_tokens: int,
     base_url = str(state.get("base_url") or "")
     api_key = str(state.get("api_key") or "")
     if not base_url:
-        return {"ok": False, "error": "server not running (runtimes/llamacpp/server.json missing)"}
+        return {"ok": False, "error": "server non attivo (runtimes/llamacpp/server.json mancante)"}
     if not status_snapshot().get("running"):
-        return {"ok": False, "error": "llama.cpp server not running"}
+        return {"ok": False, "error": "server llama.cpp non attivo"}
     if not _bench_model_loaded(model):
         load_model_async(model)
         for _ in range(180):
@@ -593,7 +722,7 @@ def _run_bench(model: str, mode: str, prompt_tokens: int, output_tokens: int,
             if _bench_model_loaded(model):
                 break
         if not _bench_model_loaded(model):
-            return {"ok": False, "error": f"model not loaded: {model}"}
+            return {"ok": False, "error": f"modello non caricato: {model}"}
     snap = status_snapshot()
     active_pkg, _active_build = _active_variant()
     preset = read_presets().get(model) or {}
@@ -631,7 +760,7 @@ async def run_bench(body: dict = None):
     body = body or {}
     model = str(body.get("model") or "").strip()
     if not model:
-        raise HTTPException(status_code=400, detail="model missing")
+        raise HTTPException(status_code=400, detail="model mancante")
     mode = str(body.get("mode") or "both").strip()
     if mode not in ("generation", "prefill", "both"):
         mode = "both"
@@ -673,12 +802,23 @@ async def bench_leaderboard():
 
 # ------------------------------------------------------------------ builds
 #
-# Elenco in sola lettura delle build llama.cpp installate nello store (tools/).
-# La selezione e la rimozione richiedevano internals privati del PM (re-pin
-# del lockfile, facts.json, cancellazione store): sono state rimosse in attesa
-# di una route pubblica del core ("select/remove installed llama.cpp build",
-# issue upstream NousResearch/hermes-agent#157878). Il backend attivo resta
-# quello configurato nel runtime.
+# Selezione e rimozione delle build llama.cpp installate nel PM store
+# (tools/). Il backend attivo e' quello registrato in facts.json: per
+# cambiare build si re-pinna il lockfile e si re-registra il fact (stessa
+# sequenza di ``hermes pm``), poi si riavvia il server solo se la build
+# scelta e' del backend in esecuzione. Le build non attive restano nello
+# store come semplici directory e si possono rimuovere liberamente.
+
+_STORE_ROOT: Path | None = None
+
+
+def _store_root() -> Path:
+    global _STORE_ROOT
+    if _STORE_ROOT is None:
+        from pm import paths as pm_paths
+        _STORE_ROOT = pm_paths.store_root()
+    return _STORE_ROOT
+
 
 def _parse_store_entry(name: str) -> dict | None:
     """Parsa il nome di una entry dello store:
@@ -718,11 +858,15 @@ def _entry_size_mb(entry: Path) -> float | None:
 
 
 def _list_builds() -> list[dict]:
-    """Tutte le build llama.cpp nello store (sola lettura, nessun internals PM).
+    """Tutte le build llama.cpp nello store, con stato attivo/verificato.
 
-    ``active`` e' la build che il server sta eseguendo (server.json): una
-    build appena aggiornata puo' essere installata senza essere in esecuzione.
+    ``active`` e' la build che il server sta eseguendo (server.json), non
+    il pin per-pacchetto di facts.json: una build appena aggiornata e' il
+    pin del suo pacchetto ma non e' in esecuzione, e se fosse marcata
+    "attiva" il frontend non offrirebbe piu' selezionarla o eliminarla.
     """
+    from pm import get_package
+
     root = _store_root()
     active_pkg, active_build = _active_variant()
     out: list[dict] = []
@@ -743,6 +887,19 @@ def _list_builds() -> list[dict]:
         active = (info["build"] is not None
                   and pkg_name == active_pkg
                   and info["build"] == active_build)
+        verified = None
+        selectable = True
+        if info["build"] and info["platform"]:
+            try:
+                pkg = get_package(pkg_name)
+            except Exception:
+                pkg = None
+                selectable = False  # package rimosso dal registro PM
+            if pkg is not None:
+                try:
+                    verified = not pkg.verify(entry, info["platform"])
+                except Exception:
+                    verified = None
         out.append({
             "entry": name,
             "package": pkg_name,
@@ -751,13 +908,141 @@ def _list_builds() -> list[dict]:
             "build": info["build"],
             "platform": info["platform"],
             "deprecated": info["deprecated"],
+            "selectable": selectable,
             "active": active,
+            "verified": verified,
             "size_mb": _entry_size_mb(entry),
         })
     return out
 
 
+def _restart_runtime() -> None:
+    """Riavvia il runtime llama.cpp gestito (stesso codice del flusso update)."""
+    from hermes_cli.local_runtime import bootstrap
+    from hermes_cli.config import load_config
+    bootstrap.shutdown_local_runtime()
+    bootstrap.ensure_local_runtime(load_config(), force=True)
+
+
 @router.get("/builds")
 async def list_builds():
-    """Build llama.cpp installate nello store, con build attiva (sola lettura)."""
+    """Build llama.cpp installate nel PM store, con build attiva e stato."""
     return JSONResponse({"builds": await asyncio.to_thread(_list_builds)})
+
+
+@router.post("/builds/select")
+async def select_build(body: dict = None):
+    """Attiva una build installata: ``{entry: "llamacpp-<variant>-<build>-<platform>"}``.
+
+    Re-pin del lockfile + re-record del fact (PM), poi riavvio del server
+    solo se la build scelta e' del backend in esecuzione.
+    """
+    entry_name = (body or {}).get("entry")
+    if not entry_name:
+        raise HTTPException(status_code=400, detail="entry mancante")
+    info = _parse_store_entry(entry_name)
+    if info is None or not info["build"] or not info["platform"]:
+        raise HTTPException(status_code=400,
+                            detail="build non valida o senza numero di versione")
+    root = _store_root()
+    entry = root / entry_name
+    if not entry.is_dir():
+        raise HTTPException(status_code=404, detail="build non trovata nello store")
+    pkg_name = f"llamacpp-{info['variant']}"
+    build, target = info["build"], info["platform"]
+    try:
+        from pm import get_package
+        package = get_package(pkg_name)
+    except Exception as exc:
+        # Es. entry legacy di un package rimosso dal registry PM
+        # (llamacpp-rocm-lemonade): 400 esplicito invece di 500.
+        logger.warning("llama-cpp build select: package non disponibile: %s (%s)",
+                       pkg_name, exc)
+        raise HTTPException(status_code=400,
+                            detail=f"pacchetto PM non disponibile: {pkg_name}")
+    try:
+        from pm import paths as pm_paths
+        from pm.lock import Facts, Lockfile
+        from pm.store import tree_digest
+
+        reason = package.verify(entry, target)
+        if reason:
+            raise HTTPException(status_code=400,
+                                detail=f"build non verificata: {reason}")
+        url = package.fetch_url(build, target)
+        sha = package.known_sha256(build, url)
+        if not sha:
+            raise HTTPException(status_code=400,
+                                detail="impossibile recuperare l'hash dell'archivio")
+        lockfile = Lockfile(pm_paths.lockfile_path())
+        lockfile.set_pin(pkg_name, build, {target: {"url": url, "sha256": sha}})
+        lockfile.save()
+        facts = Facts(root / "facts.json")
+        facts.record(
+            pkg_name, build, entry_name, package.env(entry, target), root,
+            target=target, artifacts=[sha], digest=tree_digest(entry),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("llama-cpp build select failed")
+        raise HTTPException(status_code=500, detail=f"selezione fallita: {exc}")
+    restart = pkg_name == _active_variant()[0]
+    backend_key = _BACKEND_KEYS.get(info["variant"])
+    if not restart and backend_key:
+        # Build di un backend diverso da quello in esecuzione: aggiorna
+        # local_runtime.backend nel config e riavvia il runtime, altrimenti
+        # il re-pin da solo non cambia mai la build attiva (il runtime
+        # parte sempre col backend configurato).
+        from hermes_cli.config import load_config, save_config
+        cfg = load_config()
+        lr = cfg.setdefault("local_runtime", {})
+        if lr.get("backend") != backend_key:
+            lr["backend"] = backend_key
+            save_config(cfg, merge_existing=True)
+        restart = True
+    if restart:
+        threading.Thread(target=_restart_runtime, daemon=True,
+                         name="llama-cpp-build-select").start()
+    return JSONResponse({"ok": True, "entry": entry_name, "build": build,
+                         "restart": restart})
+
+
+@router.post("/builds/delete")
+async def delete_build(body: dict = None):
+    """Rimuove una build dallo store: ``{entry: "..."}``.
+
+    Non si puo' rimuovere la build in esecuzione dal server (prima
+    selezionane un'altra); i pin per-pacchetto di facts.json non
+    bloccano la rimozione.
+    """
+    entry_name = (body or {}).get("entry")
+    if not entry_name:
+        raise HTTPException(status_code=400, detail="entry mancante")
+    info = _parse_store_entry(entry_name)
+    if info is None:
+        raise HTTPException(status_code=400, detail="build non valida")
+    root = _store_root()
+    entry = root / entry_name
+    if not entry.is_dir():
+        raise HTTPException(status_code=404, detail="build non trovata nello store")
+    pkg_name = f"llamacpp-{info['variant']}"
+    active_pkg, active_build = _active_variant()
+    if pkg_name == active_pkg and info["build"] == active_build:
+        raise HTTPException(status_code=409,
+                            detail="e' la build in esecuzione: prima selezionane un'altra")
+    try:
+        shutil.rmtree(entry)
+    except Exception as exc:
+        logger.exception("llama-cpp build delete failed")
+        raise HTTPException(status_code=500, detail=f"rimozione fallita: {exc}")
+    # Se il fatto per-pacchetto puntava alla build rimossa, lo si elimina
+    # per non lasciarlo pendente (un eventuale pm.ensure ri-scarichera').
+    try:
+        from pm.lock import Facts
+        facts = Facts(root / "facts.json")
+        if (facts.get(pkg_name) or {}).get("entry") == entry_name:
+            facts.forget([pkg_name])
+    except Exception:
+        logger.exception("llama-cpp build delete: facts cleanup failed")
+    return JSONResponse({"ok": True, "entry": entry_name})

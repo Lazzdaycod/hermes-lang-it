@@ -1,19 +1,30 @@
 # llama-cpp — Hermes llama.cpp server manager
 
-Desktop page + FastAPI backend for the Hermes-managed **llama.cpp** runtime: detect
-the GPU and pick the right build, list local GGUF models, edit and apply per-model
-presets, load/unload the active model, and benchmark generation / prefill speed.
+Desktop page + FastAPI backend for the Hermes-managed **llama.cpp** runtime:
+detects the GPU architecture, picks the right build, lists local GGUF models,
+edits and applies per-model presets, loads/unloads the active model, updates or
+reactivates the installed build, and benchmarks generation / prefill speed.
 
 ## Features
 
-- **GPU detection by model, not just vendor.** `detect_gpu()` reads the GPU
-  names the OS reports (WMI on Windows) and reports the primary GPU's name
-  and vendor (NVIDIA / AMD / Intel).
-- **Variant info matched to the detected GPU.** Vulkan (any GPU), CUDA
-  (NVIDIA sm_75+ only) and ROCm via the official
-  [ggml-org HIP build](https://github.com/ggml-org/llama.cpp/releases)
-  (AMD only). The panel shows which variant is suitable for *your* GPU and
-  the installed/latest build; no hard-coded model list.
+- **Architecture-aware GPU detection.** `detect_gpu()` reads the GPU model,
+  vendor and architecture: NVIDIA compute capability (`sm_61`, `sm_89`, via
+  `nvidia-smi`), AMD bucket (`gfx103X` / `gfx110X` / `gfx120X`). The panel
+  shows `GPU · arch`.
+- **Variants matched to the GPU.** Vulkan (any GPU), CUDA (NVIDIA sm_75+;
+  CUDA 13 builds dropped Maxwell/Pascal/Volta) and ROCm via Lemonade
+  (`lemonade-sdk/llamacpp-rocm`, AMD only). A variant the GPU cannot run is
+  marked *not suitable*: **Update** is disabled and the panel says why
+  (e.g. “Nessuna build CUDA supportata da questa GPU…”).
+- **Build manager.** Lists installed builds with active / deprecated /
+  verified state; **Use** reactivates an installed build of the same variant,
+  **Delete** removes it. **Stop** and **Restart** drive the managed server.
+- **GPU-safe update.** Update re-pins and installs the latest build for the
+  selected variant, but only when the GPU supports the current build line;
+  otherwise it refuses with an explicit message instead of upgrading into a
+  broken build.
+- **Restore.** Next to Update, **Restore** reactivates the previous installed
+  build of the same variant. It never switches variant by itself.
 - **GGUF model manager.** Lists local models with size and state
   (loaded/unloaded), loads/unloads the active model on the running server.
 - **Per-model presets.** Context window, `n-gpu-layers`, KV cache type/quant,
@@ -22,10 +33,8 @@ presets, load/unload the active model, and benchmark generation / prefill speed.
   emitted. Custom values survive preset regeneration.
 - **Benchmark.** Generation (tok/s, TTFT) and prefill (prompt tok/s) measured
   against the running server via `/v1/chat/completions`, using the server's own
-  `timings` when available. Results are stored in
-  `$HERMES_HOME/runtimes/llamacpp/bench.json`, and the leaderboard keeps the best
-  result per model **together with the preset and the llama.cpp build that
-  produced it**.
+  `timings` when available. The leaderboard keeps the best result per model
+  together with the preset and the llama.cpp build that produced it.
 - **Agent tool.** `llama_server_status` exposes backend, build, running state,
   active model, model list and current presets.
 
@@ -41,17 +50,21 @@ presets, load/unload the active model, and benchmark generation / prefill speed.
 | `GET /models` | local GGUF models with size/state |
 | `POST /apply` | write the edited preset and reload the server |
 | `POST /load` / `POST /unload` | model residency on the running server |
-| `GET /update` | read-only variant check: installed build + latest known version per source |
-| `GET /builds` | installed llama.cpp builds (read-only) |
+| `POST /stop` / `POST /restart` | server lifecycle (delegated to `hermes_cli.local_runtime.bootstrap`) |
+| `GET /update` | variant check + latest known version per source |
+| `POST /update` | re-pin + install the latest build for one variant (GPU-gated) |
+| `GET /builds` | installed llama.cpp builds |
+| `POST /builds/select` | reactivate an installed build of the same variant |
+| `POST /builds/delete` | remove an installed build |
 | `POST /bench` / `GET /bench/history` / `GET /bench/leaderboard` | benchmark and leaderboard |
 
-**GPU detection.** `detect_gpu()` reads the GPU names the OS reports (WMI on Windows) and derives the vendor; for NVIDIA it also reads the compute capability via `nvidia-smi` when present. `GET /update` marks each variant suitable/not suitable for the detected GPU, so the panel can warn when the active backend is wrong.
+**GPU detection.** `detect_gpu()` reads the GPU names the OS reports (WMI on Windows), derives the vendor, then reads the architecture: NVIDIA compute capability via `nvidia-smi --query-gpu=compute_cap`, AMD gfx bucket through `pm.packages._amd_gfx_bucket()`. `GET /update` marks each variant suitable / not suitable for the detected GPU, so the panel disables Update for a variant the GPU cannot run.
 
-**No core-internal calls.** The plugin never drives Hermes's package manager or runtime bootstrap through private internals, and it calls no core route at all. Server stop/start/restart and build installs live in **Settings → Local models** (the plugin's page is read-only for those). Version checks read public GitHub release metadata only. Selecting/removing an installed build from the panel is disabled until the core exposes a public route for it ([NousResearch/hermes-agent#157878](https://github.com/NousResearch/hermes-agent/issues/157878)).
+**Build selection and restore.** `POST /builds/select` reactivates an installed build **of the same variant** (the runtime restarts, even when switching build). The **Restore** button only appears when a previous build of the active variant is still present in the store; it never switches to a different variant.
 
 **Presets.** `$HERMES_HOME/runtimes/llamacpp/presets.ini` is written by the form (`POST /apply`) and can also be regenerated by Hermes's launch policy. `n-gpu-layers = 999` is the default (whole model to VRAM) and `override-tensor` is never emitted, so weights never spill into system RAM; custom values are preserved across regeneration.
 
-**Benchmark.** `POST /bench` calls the running server at `/v1/chat/completions` (streaming) and reads `usage` plus the server's `timings` (`prompt_per_second`, `predicted_per_second`) when present. Every run is stored in `$HERMES_HOME/runtimes/llamacpp/bench.json` with the model, mode, prompt/output tokens, TTFT, tok/s and the preset + llama.cpp build used; `GET /bench/leaderboard` aggregates the best result per model.
+**Benchmark.** `POST /bench` calls the running server at `/v1/chat/completions` (streaming) and reads `usage` plus the server's `timings` (`prompt_per_second`, `predicted_per_second`) when present. Every run is stored in `$HERMES_HOME/runtimes/llamacpp/bench.json`; `GET /bench/leaderboard` aggregates the best result per model with the preset and build used.
 
 **Agent tool.** `llama_server_status` (registered in `__init__.py`) returns backend, build, running state, active model, model list and current presets.
 
@@ -70,6 +83,23 @@ opt-in: enable the plugin in **Capabilities → Plugins**.
 - Python backend dependencies: `fastapi` (provided by the plugin environment).
 - A Hermes-managed llama.cpp runtime (`hermes local-runtime` / the llama-cpp
   provider) with at least one GGUF model.
+- The Hermes core fixes for the Lemonade ROCm build and AMD gfx buckets (see
+  below) for full ROCm support.
+
+## Core fixes (required for ROCm / Lemonade)
+
+The plugin relies on these Hermes core patches (kept in
+`hermes-core-backup-2026-11-18/fixes.patch`):
+
+- `pm/packages.py`: package `llamacpp-rocm-lemonade` (gfx bucket, device regex).
+- `hermes_cli/local_runtime/binaries.py`: backend `rocm-lemonade`.
+- `hermes_cli/local_runtime/hardware.py`: device regex + `_device_pool_view`
+  budget fallback.
+- `hermes_cli/local_runtime/presets.py`: `n-gpu-layers = 999`, preserve custom
+  keys, skip `override-tensor`.
+- `hermes_cli/local_runtime/context_policy.py`: no `override-tensor`.
+
+After a Hermes update, re-apply `fixes.patch`.
 
 ## Files
 
@@ -82,26 +112,26 @@ opt-in: enable the plugin in **Capabilities → Plugins**.
 ## Disclosure
 
 - The plugin reads and writes **inside `$HERMES_HOME`**: `runtimes/llamacpp/`
-  (server state, presets, bench history). Server lifecycle and build installs
-  are executed by Hermes core from Settings → Local models, not by the plugin.
+  (server state, presets, bench history) and the build store under `tools/`.
+- **Package manager and lifecycle.** The plugin drives Hermes's package manager
+  (`pm`) and runtime bootstrap (`hermes_cli.local_runtime.bootstrap`) for build
+  install / select / delete and server stop / restart. These are private
+  internals of the Hermes installation, not a public plugin API.
 - **Config writes.** `POST /apply` with `set_active: true` sets `model.default`
   in `config.yaml` through Hermes's own `save_config` (the same path
   `hermes config set` uses); there is no raw-YAML rewrite fallback. The preset
   form also writes `runtimes/llamacpp/presets.ini` and
   `runtimes/llamacpp/window_overrides.json`. Nothing else in `config.yaml` is
   touched.
+- **GitHub token.** Build/version checks use `gh auth token` (when `gh` is
+  authenticated) and store it in `GH_TOKEN` for the process, to avoid the
+  anonymous GitHub rate limit. Set `GH_TOKEN`/`GITHUB_TOKEN` to provide it
+  yourself.
 - Benchmark calls go to the **local** llama.cpp server only.
-- Update checks fetch public GitHub release metadata (`ggml-org/llama.cpp`)
-  and are read-only; installing a build is an explicit user action, executed
-  by the core's package manager from Settings → Local models. A GitHub token
-  is used **only if the user already set `GH_TOKEN`/`GITHUB_TOKEN` in the
-  environment** — the plugin never runs `gh auth token` and never writes
-  credentials into the process environment.
 - Local endpoint discovery probes the `/models` route of local `base_url`s
-  found in `config.yaml` **without credentials**; no `api_key` is read from
-  the config.
-- No telemetry, no credentials in the UI, no third-party network calls beyond
-  the public GitHub release metadata above.
+  found in `config.yaml` **without credentials**; no `api_key` is read from the
+  config.
+- No telemetry, no credentials in the UI.
 
 ## License
 
