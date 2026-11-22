@@ -1,0 +1,8 @@
+{
+  "name": "gpu-monitor",
+  "label": "GPU Monitor",
+  "description": "Live GPU utilization and dedicated VRAM in the Hermes Desktop status bar",
+  "icon": "Activity",
+  "version": "1.0.0",
+  "api": "plugin_api.py"
+}

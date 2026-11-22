@@ -1,0 +1,11 @@
+name: gpu-monitor
+version: "1.0.0"
+description: "Live GPU utilization and dedicated VRAM in the Hermes Desktop status bar, read from Windows performance counters"
+author: lazzo
+kind: standalone
+requires_hermes: ">=0.21.6"
+requires_env: []
+provides_tools:
+  - get_gpu_usage
+provides_hooks: []
+api: dashboard/plugin_api.py
