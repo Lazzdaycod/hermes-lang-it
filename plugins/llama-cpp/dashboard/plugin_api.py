@@ -50,6 +50,7 @@ if str(_PLUGIN_DIR) not in sys.path:
 from llama_cpp_core import (  # noqa: E402
     apply_preset,
     detect_gpu,
+    enforce_user_ctx_cap,
     hermes_home,
     list_models,
     load_model_async,
@@ -59,6 +60,15 @@ from llama_cpp_core import (  # noqa: E402
 )
 
 router = APIRouter()
+
+# Auto-correzione del soffitto ctx: i modelli nuovi generati da un core aggiornato
+# possono avere un ctx-size nativo enorme e non caricarsi. Una volta per mount.
+try:
+    _cap_report = enforce_user_ctx_cap()
+    if _cap_report.get("changed"):
+        logger.info("llama-cpp user ctx cap enforced: %s", _cap_report["changed"])
+except Exception:
+    logger.exception("llama-cpp enforce_user_ctx_cap failed")
 
 
 @router.get("/status")

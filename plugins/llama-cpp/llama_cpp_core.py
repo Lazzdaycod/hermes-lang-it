@@ -81,6 +81,12 @@ DEFAULT_OPTIONS = {
     "cache_ram": 8192,
 }
 
+# Soffitto utente per il contesto: un modello nuovo senza window override non
+# deve partire sopra questo valore (un n_ctx nativo enorme fa esplodere i buffer di
+# compute di llama-server e il modello non carica). Allineato a USER_WINDOW_CAP in
+# hermes_cli/local_runtime/context_policy.py.
+USER_CTX_CAP = int(DEFAULT_OPTIONS.get("ctx_size", 65000))
+
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -529,6 +535,40 @@ def apply_preset(model_id: str, options: dict | None = None,
     if router_probe(timeout_s=3.0).get("running"):
         result["reloaded"] = router_reload_presets()
     return result
+
+
+def enforce_user_ctx_cap() -> dict:
+    """Porta i preset con ctx-size oltre il soffitto utente (USER_CTX_CAP).
+
+    Eseguita al montaggio del plugin: un modello scaricato dopo un update puo' aver
+    ricevuto il n_ctx nativo (es. 331776) e llama-server non lo carica piu' (buffer
+    di compute OOM). I modelli con una finestra scelta esplicitamente dall'utente
+    (window_overrides.json) NON vengono toccati."""
+    changed: list[dict] = []
+    try:
+        presets = read_presets()
+    except Exception as exc:
+        return {"ok": False, "error": f"read_presets: {exc}", "changed": changed}
+    try:
+        overrides = read_window_overrides()
+    except Exception:
+        overrides = {}
+    for model_id, section in presets.items():
+        if str(model_id) in overrides:
+            continue
+        raw = str((section or {}).get("ctx-size") or "").strip()
+        try:
+            current = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if current <= USER_CTX_CAP:
+            continue
+        res = apply_preset(str(model_id), {"ctx_size": USER_CTX_CAP})
+        if res.get("ok"):
+            changed.append({"model": str(model_id), "from": current, "to": USER_CTX_CAP})
+        else:
+            changed.append({"model": str(model_id), "error": res.get("error")})
+    return {"ok": True, "changed": changed}
 
 
 # ---------------------------------------------------------------------------
