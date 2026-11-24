@@ -871,13 +871,14 @@ function Page({ ctx }) {
           ctxCapResult && ctxCapResult.length
             ? jsx('ul', {
                 className: 'mt-2 space-y-1 text-[11px] text-(--ui-text-secondary)',
-                children: ctxCapResult.map((c, i) => (
-                  <li key={`${c.model}-${i}`}>
-                    {c.error
+                children: ctxCapResult.map((c, i) =>
+                  jsx('li', {
+                    key: `${c.model}-${i}`,
+                    children: c.error
                       ? t('controls.capResultError', c.model, c.error)
-                      : t('controls.capResult', c.model, c.from, c.to)}
-                  </li>
-                ))
+                      : t('controls.capResult', c.model, c.from, c.to)
+                  })
+                )
               })
             : null
         ]
