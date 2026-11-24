@@ -68,6 +68,7 @@ def _ensure_github_token() -> None:
         pass
 
 from llama_cpp_core import (  # noqa: E402
+    USER_CTX_CAP,
     apply_preset,
     detect_gpu,
     enforce_user_ctx_cap,
@@ -79,15 +80,6 @@ from llama_cpp_core import (  # noqa: E402
 )
 
 router = APIRouter()
-
-# Auto-correzione del soffitto ctx: i modelli nuovi generati da un core aggiornato
-# possono avere un ctx-size nativo enorme e non caricarsi. Una volta per mount.
-try:
-    _cap_report = enforce_user_ctx_cap()
-    if _cap_report.get("changed"):
-        logger.info("llama-cpp user ctx cap enforced: %s", _cap_report["changed"])
-except Exception:
-    logger.exception("llama-cpp enforce_user_ctx_cap failed")
 
 
 @router.get("/status")
@@ -522,6 +514,22 @@ def _run_update(variant: str) -> None:
         _set_state(status="error", message=str(exc))
     finally:
         _set_state(check=None, resolved_at=0.0)  # forza un resolve fresco
+
+
+@router.post("/ctx-cap")
+async def cap_user_ctx(body: dict = None):
+    """Azione esplicita dell'utente: porta i preset con ctx-size oltre `cap`
+    (default USER_CTX_CAP). I modelli con window override restano invariati.
+    Restituisce l'elenco dei modelli cambiati.
+    """
+    raw = (body or {}).get("cap")
+    try:
+        cap = int(raw) if raw not in (None, "") else USER_CTX_CAP
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="cap must be an integer")
+    if cap <= 0:
+        raise HTTPException(status_code=400, detail="cap must be positive")
+    return JSONResponse(enforce_user_ctx_cap(cap))
 
 
 @router.get("/update")

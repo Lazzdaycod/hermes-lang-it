@@ -83,8 +83,9 @@ DEFAULT_OPTIONS = {
 
 # Soffitto utente per il contesto: un modello nuovo senza window override non
 # deve partire sopra questo valore (un n_ctx nativo enorme fa esplodere i buffer di
-# compute di llama-server e il modello non carica). Allineato a USER_WINDOW_CAP in
-# hermes_cli/local_runtime/context_policy.py.
+# compute di llama-server e il modello non carica). Non esiste una costante
+# equivalente nel core: il limite viene applicato solo su azione esplicita
+# dell'utente (POST /ctx-cap).
 USER_CTX_CAP = int(DEFAULT_OPTIONS.get("ctx_size", 65000))
 
 
@@ -546,13 +547,16 @@ def apply_preset(model_id: str, options: dict | None = None,
     return result
 
 
-def enforce_user_ctx_cap() -> dict:
-    """Porta i preset con ctx-size oltre il soffitto utente (USER_CTX_CAP).
+def enforce_user_ctx_cap(cap: int | None = None) -> dict:
+    """Porta i preset con ctx-size oltre il soffitto utente.
 
-    Eseguita al montaggio del plugin: un modello scaricato dopo un update puo' aver
-    ricevuto il n_ctx nativo (es. 331776) e llama-server non lo carica piu' (buffer
-    di compute OOM). I modelli con una finestra scelta esplicitamente dall'utente
-    (window_overrides.json) NON vengono toccati."""
+    Azione esplicita dell'utente (POST /ctx-cap): non gira al montaggio del
+    plugin. Un modello scaricato dopo un update puo' aver ricevuto il n_ctx
+    nativo (es. 331776) e llama-server non lo carica piu' (buffer di compute
+    OOM). I modelli con una finestra scelta esplicitamente dall'utente
+    (window_overrides.json) NON vengono toccati. Restituisce l'elenco dei
+    modelli cambiati."""
+    ceiling = int(cap) if cap else USER_CTX_CAP
     changed: list[dict] = []
     try:
         presets = read_presets()
@@ -570,11 +574,11 @@ def enforce_user_ctx_cap() -> dict:
             current = int(raw)
         except (TypeError, ValueError):
             continue
-        if current <= USER_CTX_CAP:
+        if current <= ceiling:
             continue
-        res = apply_preset(str(model_id), {"ctx_size": USER_CTX_CAP})
+        res = apply_preset(str(model_id), {"ctx_size": ceiling})
         if res.get("ok"):
-            changed.append({"model": str(model_id), "from": current, "to": USER_CTX_CAP})
+            changed.append({"model": str(model_id), "from": current, "to": ceiling})
         else:
             changed.append({"model": str(model_id), "error": res.get("error")})
     return {"ok": True, "changed": changed}
