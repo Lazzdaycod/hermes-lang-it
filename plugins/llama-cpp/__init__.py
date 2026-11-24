@@ -25,10 +25,10 @@ except ImportError:  # bare module import (no package context)
     from llama_cpp_core import list_models, status_snapshot  # type: ignore
 
 _TOOL_DESCRIPTION = (
-    "Stato del server llama.cpp locale gestito da Hermes: backend GPU "
-    "(vulkan/cuda/rocm), server attivo (porta, pid), modello attivo, "
-    "modelli GGUF disponibili con dimensione e stato (loaded/unloaded), "
-    "e preset correnti (ctx, KV cache, flash-attn, batch, sampling)."
+    "Status of the Hermes-managed local llama.cpp server: GPU backend "
+    "(vulkan/cuda/rocm), running state (port, pid), active model, available "
+    "GGUF models with size and state (loaded/unloaded), and current presets "
+    "(ctx, KV cache, flash-attn, batch, sampling)."
 )
 
 

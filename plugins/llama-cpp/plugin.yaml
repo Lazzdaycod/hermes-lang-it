@@ -1,5 +1,5 @@
 name: llama-cpp
-version: "1.2.0"
+version: "1.2.1"
 description: "llama.cpp server manager (catalog build): detect GPU architecture, list local GGUF models, per-model presets, load/unload, benchmark. Management controls (update/stop/restart/build select/delete) are not included to follow the catalog policy - see the full version in Lazzdaycod/hermes-lang-it."
 author: lazzo
 kind: standalone

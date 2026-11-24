@@ -197,7 +197,16 @@ const LOCALES = {
     'bench.col.prefill': 'Prefill tok/s',
     'bench.col.server': 'Server',
     'bench.col.preset': 'Preset',
-    'bench.recent': 'Recent sessions'
+    'bench.recent': 'Recent sessions',
+    'controls.capTitle': 'Context window cap',
+    'controls.capLabel': 'Cap context at',
+    'controls.capApply': 'Apply cap',
+    'controls.capApplied': 'Context cap applied',
+    'controls.capNone': 'No preset above the cap.',
+    'controls.capChanged': (n) => `${n} preset(s) capped`,
+    'controls.capError': 'Could not apply the cap',
+    'controls.capResult': (m, f, to) => `${m}: ${f} → ${to}`,
+    'controls.capResultError': (m, err) => `${m}: ${err}`
   },
   it: {
     'catalog.notice': 'Versione catalogo — aggiorna, stop/riavvia e seleziona/elimina build non sono inclusi per rispettare le regole del catalogo. Usa Impostazioni → Modelli locali, oppure installa la versione completa dalla repository Lazzdaycod/hermes-lang-it.',
@@ -315,7 +324,16 @@ const LOCALES = {
     'bench.col.prefill': 'Prefill tok/s',
     'bench.col.server': 'Server',
     'bench.col.preset': 'Preset',
-    'bench.recent': 'Ultime sessioni'
+    'bench.recent': 'Ultime sessioni',
+    'controls.capTitle': 'Limite finestra di contesto',
+    'controls.capLabel': 'Limita il contesto a',
+    'controls.capApply': 'Applica limite',
+    'controls.capApplied': 'Limite contesto applicato',
+    'controls.capNone': 'Nessun preset oltre il limite.',
+    'controls.capChanged': (n) => `${n} preset limitati`,
+    'controls.capError': 'Impossibile applicare il limite',
+    'controls.capResult': (m, f, to) => `${m}: ${f} → ${to}`,
+    'controls.capResultError': (m, err) => `${m}: ${err}`
   }
 }
 
@@ -413,6 +431,8 @@ function Page({ ctx }) {
   const [benchRuns, setBenchRuns] = useState(1)
   const [benchBusy, setBenchBusy] = useState(false)
   const [benchResults, setBenchResults] = useState([])
+  const [ctxCap, setCtxCap] = useState(65000)
+  const [ctxCapResult, setCtxCapResult] = useState(null)
 
   const statusQuery = useQuery({
     queryKey: ['llama-cpp', 'status'],
@@ -483,6 +503,29 @@ function Page({ ctx }) {
   }
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['llama-cpp'] })
+
+  // Azione esplicita: applica il soffitto di contesto ai preset. Non gira mai
+  // al montaggio del plugin.
+  const runCtxCap = async () => {
+    if (busy) return
+    const cap = Number(ctxCap)
+    if (!Number.isFinite(cap) || cap <= 0) return
+    setBusy({ kind: 'ctxCap' })
+    try {
+      const res = await ctx.rest('/ctx-cap', { method: 'POST', body: { cap: Math.round(cap) } })
+      const changed = (res && res.changed) || []
+      setCtxCapResult(changed)
+      host.notify({
+        kind: 'success',
+        message: changed.length ? t('controls.capChanged', changed.length) : t('controls.capNone')
+      })
+      invalidate()
+    } catch (err) {
+      host.notify({ kind: 'error', message: `${t('controls.capError')}: ${apiError(err)}` })
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const runLoadUnload = async (kind, model) => {
     if (busy) return
@@ -633,6 +676,51 @@ function Page({ ctx }) {
             ]
           })
         })
+      }),
+      jsxs('div', {
+        className: 'mt-3 rounded-lg border border-(--ui-stroke-secondary) p-3',
+        children: [
+          jsx('div', {
+            className: 'mb-2 text-xs font-medium text-(--ui-text-secondary)',
+            children: t('controls.capTitle')
+          }),
+          jsxs('div', {
+            className: 'flex items-center gap-2',
+            children: [
+              jsx('label', {
+                className: 'text-xs text-(--ui-text-secondary)',
+                children: t('controls.capLabel')
+              }),
+              jsx('input', {
+                type: 'number',
+                min: '1024',
+                step: '1024',
+                value: ctxCap,
+                onChange: (e) => setCtxCap(e.target.value),
+                className: inputCls
+              }),
+              jsx('button', {
+                type: 'button',
+                disabled: !!busy || !Number.isFinite(Number(ctxCap)) || Number(ctxCap) <= 0,
+                onClick: runCtxCap,
+                className: actionBtnCls,
+                children: busy && busy.kind === 'ctxCap' ? '…' : t('controls.capApply')
+              })
+            ]
+          }),
+          ctxCapResult && ctxCapResult.length
+            ? jsx('ul', {
+                className: 'mt-2 space-y-1 text-[11px] text-(--ui-text-secondary)',
+                children: ctxCapResult.map((c, i) => (
+                  <li key={`${c.model}-${i}`}>
+                    {c.error
+                      ? t('controls.capResultError', c.model, c.error)
+                      : t('controls.capResult', c.model, c.from, c.to)}
+                  </li>
+                ))
+              })
+            : null
+        ]
       }),
       jsx('p', {
         className: 'mt-3 text-[11px] text-(--ui-text-secondary)',
